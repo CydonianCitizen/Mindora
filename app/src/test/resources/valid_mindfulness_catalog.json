@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "paths": [
+    {
+      "id": "first-path",
+      "title": "First path",
+      "description": "First test path.",
+      "steps": [
+        {
+          "id": "guided-1",
+          "type": "guided_meditation",
+          "title": "Guided test",
+          "description": "Guided test step.",
+          "durationSeconds": 300,
+          "audioAsset": "audio/guided_test.mp3"
+        },
+        {
+          "id": "free-1",
+          "type": "free_meditation",
+          "title": "Free test",
+          "description": "Free test step.",
+          "suggestedDurationSeconds": 600
+        },
+        {
+          "id": "breathing-1",
+          "type": "breathing_exercise",
+          "title": "Breathing test",
+          "description": "Breathing test step.",
+          "inhaleSeconds": 4,
+          "holdAfterInhaleSeconds": 0,
+          "exhaleSeconds": 6,
+          "holdAfterExhaleSeconds": 1,
+          "cycles": 5
+        }
+      ]
+    },
+    {
+      "id": "second-path",
+      "title": "Second path",
+      "description": "Second test path.",
+      "steps": [
+        {
+          "id": "second-free",
+          "type": "free_meditation",
+          "title": "Second free test",
+          "description": "Second free test step.",
+          "suggestedDurationSeconds": 120
+        }
+      ]
+    }
+  ]
+}

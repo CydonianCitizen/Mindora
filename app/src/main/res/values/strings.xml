@@ -5,4 +5,11 @@
     <string name="history">History</string>
     <string name="settings">Settings</string>
     <string name="navigate_to_destination">Navigate to %1$s</string>
+    <string name="practice_empty_message">No mindfulness paths are included yet.</string>
+    <string name="practice_error_message">Mindfulness paths couldn’t be loaded.</string>
+    <string name="retry">Retry</string>
+    <plurals name="practice_step_count">
+        <item quantity="one">%1$d step</item>
+        <item quantity="other">%1$d steps</item>
+    </plurals>
 </resources>
