@@ -7,6 +7,15 @@
     <string name="navigate_to_destination">Navigate to %1$s</string>
     <string name="practice_empty_message">No mindfulness paths are included yet.</string>
     <string name="practice_error_message">Mindfulness paths couldn’t be loaded.</string>
+    <string name="history_empty_message">Completed practice sessions will appear here.</string>
+    <string name="history_error_message">Session history couldn’t be loaded.</string>
+    <string name="session_type_guided_meditation">Guided meditation</string>
+    <string name="session_type_free_meditation">Free meditation</string>
+    <string name="session_type_breathing_exercise">Breathing exercise</string>
+    <string name="session_status_completed">Completed</string>
+    <string name="session_status_interrupted">Interrupted</string>
+    <string name="history_session_started_at">%1$s at %2$s</string>
+    <string name="history_session_active_duration">%1$s active</string>
     <string name="retry">Retry</string>
     <plurals name="practice_step_count">
         <item quantity="one">%1$d step</item>
