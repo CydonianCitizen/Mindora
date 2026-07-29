@@ -39,3 +39,7 @@ enum class MindoraDestination(
 object FreeMeditationDestination {
     const val route = "practice/free-meditation"
 }
+
+object BreathingExerciseDestination {
+    const val route = "practice/breathing"
+}

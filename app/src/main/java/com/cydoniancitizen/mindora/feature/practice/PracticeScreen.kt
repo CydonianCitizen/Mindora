@@ -31,6 +31,7 @@ import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
 @Composable
 fun PracticeScreen(
     onFreeMeditationClick: () -> Unit,
+    onBreathingExerciseClick: () -> Unit,
     viewModel: PracticeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -38,6 +39,7 @@ fun PracticeScreen(
         uiState = uiState,
         onRetry = viewModel::retry,
         onFreeMeditationClick = onFreeMeditationClick,
+        onBreathingExerciseClick = onBreathingExerciseClick,
     )
 }
 
@@ -46,6 +48,7 @@ internal fun PracticeScreen(
     uiState: PracticeUiState,
     onRetry: () -> Unit,
     onFreeMeditationClick: () -> Unit,
+    onBreathingExerciseClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -60,7 +63,17 @@ internal fun PracticeScreen(
             style = MaterialTheme.typography.headlineMedium,
         )
 
-        PracticeFreeMeditationAction(onClick = onFreeMeditationClick)
+        PracticeStandaloneAction(
+            title = stringResource(R.string.free_meditation),
+            description = stringResource(R.string.free_meditation_description),
+            onClick = onFreeMeditationClick,
+        )
+        PracticeStandaloneAction(
+            title = stringResource(R.string.breathing_exercise),
+            description = stringResource(R.string.breathing_exercise_description),
+            onClick = onBreathingExerciseClick,
+            modifier = Modifier.padding(top = 12.dp),
+        )
 
         Text(
             text = stringResource(R.string.bundled_mindfulness_paths),
@@ -86,20 +99,25 @@ internal fun PracticeScreen(
 }
 
 @Composable
-private fun PracticeFreeMeditationAction(onClick: () -> Unit) {
+private fun PracticeStandaloneAction(
+    title: String,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Card(
         onClick = onClick,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = stringResource(R.string.free_meditation),
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text = stringResource(R.string.free_meditation_description),
+                text = description,
                 modifier = Modifier.padding(top = 8.dp),
                 style = MaterialTheme.typography.bodyMedium,
             )

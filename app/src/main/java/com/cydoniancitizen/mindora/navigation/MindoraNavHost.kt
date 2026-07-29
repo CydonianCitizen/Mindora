@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.cydoniancitizen.mindora.feature.breathing.BreathingExerciseScreen
 import com.cydoniancitizen.mindora.feature.history.HistoryScreen
 import com.cydoniancitizen.mindora.feature.home.HomeScreen
 import com.cydoniancitizen.mindora.feature.freemeditation.FreeMeditationScreen
@@ -29,10 +30,16 @@ fun MindoraNavHost(
                 onFreeMeditationClick = {
                     navController.navigate(FreeMeditationDestination.route)
                 },
+                onBreathingExerciseClick = {
+                    navController.navigate(BreathingExerciseDestination.route)
+                },
             )
         }
         composable(FreeMeditationDestination.route) {
             FreeMeditationScreen(onNavigateBack = navController::navigateUp)
+        }
+        composable(BreathingExerciseDestination.route) {
+            BreathingExerciseScreen(onNavigateBack = navController::navigateUp)
         }
         composable(MindoraDestination.HISTORY.route) {
             HistoryScreen()
