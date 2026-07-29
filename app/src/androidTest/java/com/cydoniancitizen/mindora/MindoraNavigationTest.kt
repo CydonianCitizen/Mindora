@@ -1,5 +1,7 @@
 package com.cydoniancitizen.mindora
 
+import android.net.Uri
+
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -9,6 +11,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.cydoniancitizen.mindora.navigation.GuidedMeditationDestination
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,6 +22,14 @@ class MindoraNavigationTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
+    @Test
+    fun guidedRouteSafelyEncodesAndDecodesGlobalStepId() {
+        val stepId = "guided/step with space"
+        val route = GuidedMeditationDestination.createRoute(stepId)
+
+        assertEquals("practice/guided/guided%2Fstep%20with%20space", route)
+        assertEquals(stepId, Uri.decode(route.substringAfter("practice/guided/")))
+    }
     @Test
     fun topLevelDestinationsNavigateWithoutDuplicatingActiveDestination() {
         composeRule.onAllNodesWithText("Home").assertCountEquals(2)

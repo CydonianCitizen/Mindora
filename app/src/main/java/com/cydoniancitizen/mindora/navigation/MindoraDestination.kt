@@ -1,5 +1,6 @@
 package com.cydoniancitizen.mindora.navigation
 
+import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -42,4 +43,11 @@ object FreeMeditationDestination {
 
 object BreathingExerciseDestination {
     const val route = "practice/breathing"
+}
+
+object GuidedMeditationDestination {
+    const val stepIdArgument = "stepId"
+    const val route = "practice/guided/{$stepIdArgument}"
+
+    fun createRoute(stepId: String): String = "practice/guided/${Uri.encode(stepId)}"
 }

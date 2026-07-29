@@ -18,8 +18,7 @@ fun MindoraApp() {
         val navController = rememberNavController()
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
-        val showBottomBar = currentRoute == null ||
-            MindoraDestination.entries.any { it.route == currentRoute }
+        val showBottomBar = shouldShowBottomBar(currentRoute)
 
         Scaffold(
             bottomBar = {
@@ -35,3 +34,6 @@ fun MindoraApp() {
         }
     }
 }
+
+internal fun shouldShowBottomBar(route: String?): Boolean = route == null ||
+    MindoraDestination.entries.any { it.route == route }

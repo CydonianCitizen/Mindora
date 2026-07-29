@@ -64,4 +64,22 @@
         <item quantity="one">%1$d step</item>
         <item quantity="other">%1$d steps</item>
     </plurals>
+    <string name="guided_meditation">Guided meditation</string>
+    <string name="loading_guided_meditation">Loading guided meditation…</string>
+    <string name="guided_meditation_unavailable">This guided meditation is unavailable.</string>
+    <string name="guided_content_error">Guided meditation content couldn’t be loaded.</string>
+    <string name="guided_planned_duration">Duration: %1$s</string>
+    <string name="preparing_audio">Preparing audio…</string>
+    <string name="playing">Playing</string>
+    <string name="guided_progress_accessibility">%1$s, %2$s elapsed of %3$s total</string>
+    <string name="guided_elapsed_total">%1$s / %2$s</string>
+    <string name="guided_completed_result">Guided meditation completed</string>
+    <string name="guided_interrupted_result">Guided meditation ended</string>
+    <string name="guided_playback_failed">Audio couldn’t be played.</string>
+    <string name="guided_playback_failed_saved">Playback ended unexpectedly. %1$s active time was saved as interrupted.</string>
+    <string name="retry_playback">Retry playback</string>
+    <string name="end_guided_meditation_title">End this meditation?</string>
+    <string name="end_guided_meditation_message">Your active listening time will be saved as an interrupted session.</string>
+    <string name="continue_meditation">Continue meditation</string>
+    <string name="end_meditation">End meditation</string>
 </resources>
