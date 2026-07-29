@@ -29,11 +29,15 @@ import com.cydoniancitizen.mindora.R
 import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
 
 @Composable
-fun PracticeScreen(viewModel: PracticeViewModel = hiltViewModel()) {
+fun PracticeScreen(
+    onFreeMeditationClick: () -> Unit,
+    viewModel: PracticeViewModel = hiltViewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     PracticeScreen(
         uiState = uiState,
         onRetry = viewModel::retry,
+        onFreeMeditationClick = onFreeMeditationClick,
     )
 }
 
@@ -41,6 +45,7 @@ fun PracticeScreen(viewModel: PracticeViewModel = hiltViewModel()) {
 internal fun PracticeScreen(
     uiState: PracticeUiState,
     onRetry: () -> Unit,
+    onFreeMeditationClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -55,6 +60,19 @@ internal fun PracticeScreen(
             style = MaterialTheme.typography.headlineMedium,
         )
 
+        PracticeFreeMeditationAction(onClick = onFreeMeditationClick)
+
+        Text(
+            text = stringResource(R.string.bundled_mindfulness_paths),
+            modifier = Modifier.padding(
+                start = 24.dp,
+                top = 24.dp,
+                end = 24.dp,
+                bottom = 12.dp,
+            ),
+            style = MaterialTheme.typography.titleMedium,
+        )
+
         when (uiState) {
             PracticeUiState.Loading -> PracticeLoading()
             PracticeUiState.Empty -> PracticeMessage(
@@ -63,6 +81,28 @@ internal fun PracticeScreen(
 
             PracticeUiState.Error -> PracticeError(onRetry = onRetry)
             is PracticeUiState.Content -> PracticePathList(paths = uiState.paths)
+        }
+    }
+}
+
+@Composable
+private fun PracticeFreeMeditationAction(onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.free_meditation),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(R.string.free_meditation_description),
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }

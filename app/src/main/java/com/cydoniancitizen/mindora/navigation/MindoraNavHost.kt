@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.cydoniancitizen.mindora.feature.history.HistoryScreen
 import com.cydoniancitizen.mindora.feature.home.HomeScreen
+import com.cydoniancitizen.mindora.feature.freemeditation.FreeMeditationScreen
 import com.cydoniancitizen.mindora.feature.practice.PracticeScreen
 import com.cydoniancitizen.mindora.feature.settings.SettingsScreen
 
@@ -24,7 +25,14 @@ fun MindoraNavHost(
             HomeScreen()
         }
         composable(MindoraDestination.PRACTICE.route) {
-            PracticeScreen()
+            PracticeScreen(
+                onFreeMeditationClick = {
+                    navController.navigate(FreeMeditationDestination.route)
+                },
+            )
+        }
+        composable(FreeMeditationDestination.route) {
+            FreeMeditationScreen(onNavigateBack = navController::navigateUp)
         }
         composable(MindoraDestination.HISTORY.route) {
             HistoryScreen()

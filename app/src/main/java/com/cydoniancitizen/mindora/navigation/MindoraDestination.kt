@@ -35,3 +35,7 @@ enum class MindoraDestination(
         icon = Icons.Filled.Settings,
     ),
 }
+
+object FreeMeditationDestination {
+    const val route = "practice/free-meditation"
+}
