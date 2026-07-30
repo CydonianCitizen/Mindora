@@ -84,6 +84,17 @@ class MindoraNavigationTest {
     }
 
     @Test
+    fun setGoalActionOpensSettingsAndKeepsBottomNavigation() {
+        composeRule.onNodeWithText("Set a goal").performClick()
+
+        composeRule.onAllNodesWithText("Settings").assertCountEquals(2)
+        composeRule.onNodeWithContentDescription(
+            "Navigate to Home",
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
+    }
+
+    @Test
     fun freeMeditationOpensFromPracticeAndHidesBottomNavigation() {
         composeRule.onNodeWithContentDescription(
             "Navigate to Practice",

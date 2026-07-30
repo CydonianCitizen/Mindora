@@ -28,7 +28,13 @@ fun MindoraNavHost(
         modifier = modifier,
     ) {
         composable(MindoraDestination.HOME.route) {
-            HomeScreen()
+            HomeScreen(
+                onOpenSettings = {
+                    navController.navigate(MindoraDestination.SETTINGS.route) {
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable(MindoraDestination.PRACTICE.route) {
             PracticeScreen(

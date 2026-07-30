@@ -1,0 +1,74 @@
+package com.cydoniancitizen.mindora.core.reminder
+
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import com.cydoniancitizen.mindora.MainActivity
+import com.cydoniancitizen.mindora.R
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+
+class ReminderNotificationPublisher @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+) {
+    fun postIfAllowed(): Boolean {
+        if (!notificationsAllowed(context)) return false
+
+        createChannel()
+        val notification = buildNotification()
+        return try {
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+            true
+        } catch (error: SecurityException) {
+            false
+        }
+    }
+
+    internal fun buildNotification(): android.app.Notification {
+        val contentIntent = PendingIntent.getActivity(
+            context,
+            CONTENT_REQUEST_CODE,
+            Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_mindfulness_reminder)
+            .setContentTitle(context.getString(R.string.reminder_notification_title))
+            .setContentText(context.getString(R.string.reminder_notification_body))
+            .setContentIntent(contentIntent)
+            .setAutoCancel(true)
+            .build()
+        return notification
+    }
+
+    internal fun createChannel() {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            context.getString(R.string.reminder_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = context.getString(R.string.reminder_channel_description)
+        }
+        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    }
+
+    companion object {
+        const val CHANNEL_ID = "mindfulness_reminders"
+        const val NOTIFICATION_ID = 810
+        private const val CONTENT_REQUEST_CODE = 811
+    }
+}
+
+fun notificationsAllowed(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.POST_NOTIFICATIONS,
+    ) == PackageManager.PERMISSION_GRANTED &&
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
