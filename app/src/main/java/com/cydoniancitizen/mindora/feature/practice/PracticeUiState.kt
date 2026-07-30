@@ -1,6 +1,13 @@
 package com.cydoniancitizen.mindora.feature.practice
 
-import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
+data class MindfulnessPathSummary(
+    val id: String,
+    val title: String,
+    val description: String,
+    val completedSteps: Int,
+    val totalSteps: Int,
+    val progressFraction: Float,
+)
 
 sealed interface PracticeUiState {
     data object Loading : PracticeUiState
@@ -8,7 +15,7 @@ sealed interface PracticeUiState {
     data object Empty : PracticeUiState
 
     data class Content(
-        val paths: List<MindfulnessPath>,
+        val paths: List<MindfulnessPathSummary>,
     ) : PracticeUiState
 
     data object Error : PracticeUiState

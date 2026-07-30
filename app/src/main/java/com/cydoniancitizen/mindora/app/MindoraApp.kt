@@ -35,5 +35,5 @@ fun MindoraApp() {
     }
 }
 
-internal fun shouldShowBottomBar(route: String?): Boolean = route == null ||
+internal fun shouldShowBottomBar(route: String?): Boolean =
     MindoraDestination.entries.any { it.route == route }

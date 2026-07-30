@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -19,19 +20,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.R
-import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
 
 @Composable
 fun PracticeScreen(
     onFreeMeditationClick: () -> Unit,
     onBreathingExerciseClick: () -> Unit,
+    onPathClick: (String) -> Unit,
     viewModel: PracticeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -40,6 +40,7 @@ fun PracticeScreen(
         onRetry = viewModel::retry,
         onFreeMeditationClick = onFreeMeditationClick,
         onBreathingExerciseClick = onBreathingExerciseClick,
+        onPathClick = onPathClick,
     )
 }
 
@@ -49,6 +50,7 @@ internal fun PracticeScreen(
     onRetry: () -> Unit,
     onFreeMeditationClick: () -> Unit,
     onBreathingExerciseClick: () -> Unit,
+    onPathClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -93,7 +95,10 @@ internal fun PracticeScreen(
             )
 
             PracticeUiState.Error -> PracticeError(onRetry = onRetry)
-            is PracticeUiState.Content -> PracticePathList(paths = uiState.paths)
+            is PracticeUiState.Content -> PracticePathList(
+                paths = uiState.paths,
+                onPathClick = onPathClick,
+            )
         }
     }
 }
@@ -179,7 +184,10 @@ private fun ColumnScope.PracticeError(onRetry: () -> Unit) {
 }
 
 @Composable
-private fun ColumnScope.PracticePathList(paths: List<MindfulnessPath>) {
+private fun ColumnScope.PracticePathList(
+    paths: List<MindfulnessPathSummary>,
+    onPathClick: (String) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.weight(1f),
         contentPadding = PaddingValues(
@@ -191,9 +199,12 @@ private fun ColumnScope.PracticePathList(paths: List<MindfulnessPath>) {
     ) {
         items(
             items = paths,
-            key = MindfulnessPath::id,
+            key = MindfulnessPathSummary::id,
         ) { path ->
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                onClick = { onPathClick(path.id) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = path.title,
@@ -205,13 +216,19 @@ private fun ColumnScope.PracticePathList(paths: List<MindfulnessPath>) {
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
-                        text = pluralStringResource(
-                            R.plurals.practice_step_count,
-                            path.steps.size,
-                            path.steps.size,
+                        text = stringResource(
+                            R.string.path_progress,
+                            path.completedSteps,
+                            path.totalSteps,
                         ),
                         modifier = Modifier.padding(top = 8.dp),
                         style = MaterialTheme.typography.labelLarge,
+                    )
+                    LinearProgressIndicator(
+                        progress = { path.progressFraction.coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
                     )
                 }
             }

@@ -1,17 +1,22 @@
 package com.cydoniancitizen.mindora.feature.freemeditation
 
+import androidx.lifecycle.SavedStateHandle
+import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
+import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
 import com.cydoniancitizen.mindora.feature.practice.MainDispatcherRule
+import com.cydoniancitizen.mindora.testsupport.TestMindfulnessCatalogue
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -294,10 +299,88 @@ class FreeMeditationViewModelTest {
         assertEquals(1, time.instantReadCount)
     }
 
+    @Test
+    fun `valid linked free step resolves catalogue content with fixed duration`() = runTest {
+        val viewModel = viewModel(stepId = "free-step")
+
+        assertTrue(viewModel.uiState.value is FreeMeditationUiState.LoadingContent)
+        advanceUntilIdle()
+
+        val setup = viewModel.state<FreeMeditationUiState.Setup>()
+        assertEquals("Free step", setup.linkedContent?.title)
+        assertEquals("Free description.", setup.linkedContent?.description)
+        assertEquals(Duration.ofSeconds(120), setup.selectedDuration)
+        assertTrue(setup.availableDurations.isEmpty())
+
+        viewModel.selectDuration(Duration.ofMinutes(20))
+        assertEquals(
+            Duration.ofSeconds(120),
+            viewModel.state<FreeMeditationUiState.Setup>().selectedDuration,
+        )
+    }
+
+    @Test
+    fun `unknown guided and breathing linked steps are unavailable`() = runTest {
+        listOf("missing", "guided-step", "breathing-step").forEach { stepId ->
+            val viewModel = viewModel(stepId = stepId)
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value is FreeMeditationUiState.Unavailable)
+        }
+    }
+
+    @Test
+    fun `linked completed session persists catalogue identity and duration`() = runTest {
+        val repository = FakeSessionRepository()
+        val time = FakeTimeSource(elapsedRealtimeMillis = 1_000)
+        val viewModel = viewModel(repository, time, stepId = "free-step")
+        advanceUntilIdle()
+        viewModel.start()
+        time.elapsedRealtimeMillis += Duration.ofSeconds(120).toMillis()
+
+        viewModel.refreshTime()
+        runCurrent()
+
+        val session = repository.saved.single()
+        assertEquals(MindfulnessSessionStatus.COMPLETED, session.status)
+        assertEquals("first-path", session.sourcePathId)
+        assertEquals("free-step", session.sourceStepId)
+        assertEquals(Duration.ofSeconds(120), session.plannedDuration)
+    }
+
+    @Test
+    fun `linked interrupted retry preserves identity and UUID`() = runTest {
+        val repository = FakeSessionRepository(failAdds = true)
+        val time = FakeTimeSource(elapsedRealtimeMillis = 1_000)
+        val viewModel = viewModel(repository, time, stepId = "free-step")
+        advanceUntilIdle()
+        viewModel.start()
+        time.elapsedRealtimeMillis = 2_000
+        viewModel.requestEnd()
+        viewModel.confirmEnd()
+        runCurrent()
+        val pending = viewModel.state<FreeMeditationUiState.SaveFailed>().pendingSession
+
+        repository.failAdds = false
+        viewModel.retrySave()
+        runCurrent()
+
+        assertEquals(MindfulnessSessionStatus.INTERRUPTED, pending.status)
+        assertEquals("first-path", pending.sourcePathId)
+        assertEquals("free-step", pending.sourceStepId)
+        assertEquals(listOf(pending.id, pending.id), repository.attempts.map { it.id })
+    }
+
     private fun viewModel(
         repository: FakeSessionRepository = FakeSessionRepository(),
         time: FakeTimeSource = FakeTimeSource(),
-    ) = FreeMeditationViewModel(repository, time)
+        stepId: String? = null,
+        contentRepository: MindfulnessContentRepository = FakeContentRepository(),
+    ) = FreeMeditationViewModel(
+        SavedStateHandle(stepId?.let { mapOf("stepId" to it) }.orEmpty()),
+        contentRepository,
+        repository,
+        time,
+    )
 
     private inline fun <reified T : FreeMeditationUiState> FreeMeditationViewModel.state(): T {
         val state = uiState.value
@@ -340,6 +423,11 @@ class FreeMeditationViewModelTest {
             }
             saved += session
         }
+    }
+
+    private class FakeContentRepository : MindfulnessContentRepository {
+        override suspend fun getPaths(): List<MindfulnessPath> =
+            TestMindfulnessCatalogue.paths
     }
 
     private companion object {

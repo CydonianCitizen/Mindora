@@ -2,8 +2,17 @@ package com.cydoniancitizen.mindora.feature.practice
 
 import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
 import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
+import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
+import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
+import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
+import com.cydoniancitizen.mindora.testsupport.TestMindfulnessCatalogue
+import com.cydoniancitizen.mindora.testsupport.testSession
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -17,62 +26,118 @@ class PracticeViewModelTest {
 
     @Test
     fun `initial state is loading`() = runTest {
-        val repository = FakeContentRepository { emptyList() }
-
-        val viewModel = PracticeViewModel(repository)
+        val sessions = MutableSharedFlow<List<MindfulnessSession>>()
+        val viewModel = viewModel(sessions = sessions)
 
         assertSame(PracticeUiState.Loading, viewModel.uiState.value)
-        advanceUntilIdle()
     }
 
     @Test
-    fun `paths produce content state`() = runTest {
-        val paths = listOf(testPath)
-        val viewModel = PracticeViewModel(FakeContentRepository { paths })
+    fun `empty catalogue becomes empty after session source emits`() = runTest {
+        val sessions = MutableSharedFlow<List<MindfulnessSession>>()
+        val viewModel = viewModel(paths = emptyList(), sessions = sessions)
+        runCurrent()
 
-        advanceUntilIdle()
-
-        assertEquals(PracticeUiState.Content(paths), viewModel.uiState.value)
-    }
-
-    @Test
-    fun `no paths produce empty state`() = runTest {
-        val viewModel = PracticeViewModel(FakeContentRepository { emptyList() })
-
-        advanceUntilIdle()
+        sessions.emit(emptyList())
+        runCurrent()
 
         assertSame(PracticeUiState.Empty, viewModel.uiState.value)
     }
 
     @Test
-    fun `repository failure produces error state`() = runTest {
-        val viewModel = PracticeViewModel(
-            FakeContentRepository {
-                error("Test failure.")
-            },
+    fun `populated catalogue preserves order totals and derives progress`() = runTest {
+        val sessions = MutableSharedFlow<List<MindfulnessSession>>()
+        val viewModel = viewModel(sessions = sessions)
+        runCurrent()
+
+        sessions.emit(
+            listOf(
+                testSession("completed"),
+                testSession(
+                    "interrupted",
+                    status = MindfulnessSessionStatus.INTERRUPTED,
+                    stepId = "free-step",
+                ),
+            ),
         )
+        runCurrent()
 
-        advanceUntilIdle()
-
-        assertSame(PracticeUiState.Error, viewModel.uiState.value)
+        val content = viewModel.uiState.value as PracticeUiState.Content
+        assertEquals(listOf("first-path", "second-path"), content.paths.map { it.id })
+        assertEquals(listOf(3, 1), content.paths.map { it.totalSteps })
+        assertEquals(1, content.paths.first().completedSteps)
+        assertEquals(1f / 3f, content.paths.first().progressFraction)
     }
 
     @Test
-    fun `retry reloads after an error`() = runTest {
-        val repository = FakeContentRepository {
-            error("Test failure.")
-        }
-        val viewModel = PracticeViewModel(repository)
+    fun `Room emissions update progress without reload`() = runTest {
+        val sessions = MutableSharedFlow<List<MindfulnessSession>>()
+        val contentRepository = FakeContentRepository { TestMindfulnessCatalogue.paths }
+        val viewModel = viewModel(contentRepository = contentRepository, sessions = sessions)
+        runCurrent()
+        sessions.emit(emptyList())
+        runCurrent()
+        assertEquals(
+            0,
+            (viewModel.uiState.value as PracticeUiState.Content).paths.first().completedSteps,
+        )
+
+        sessions.emit(listOf(testSession("completed")))
+        runCurrent()
+
+        assertEquals(
+            1,
+            (viewModel.uiState.value as PracticeUiState.Content).paths.first().completedSteps,
+        )
+        assertEquals(1, contentRepository.loadCount)
+    }
+
+    @Test
+    fun `catalogue and session failures produce error`() = runTest {
+        val catalogueFailure = viewModel(
+            contentRepository = FakeContentRepository { error("catalogue") },
+        )
         advanceUntilIdle()
-        repository.load = { listOf(testPath) }
+        assertSame(PracticeUiState.Error, catalogueFailure.uiState.value)
+
+        val sessionFailure = PracticeViewModel(
+            FakeContentRepository { TestMindfulnessCatalogue.paths },
+            FakeSessionRepository(
+                flow {
+                    error("sessions")
+                },
+            ),
+        )
+        advanceUntilIdle()
+        assertSame(PracticeUiState.Error, sessionFailure.uiState.value)
+    }
+
+    @Test
+    fun `retry reloads both sources after error`() = runTest {
+        val content = FakeContentRepository { error("first") }
+        val sessions = MutableSharedFlow<List<MindfulnessSession>>()
+        val viewModel = viewModel(contentRepository = content, sessions = sessions)
+        advanceUntilIdle()
+        content.load = { TestMindfulnessCatalogue.paths }
 
         viewModel.retry()
         assertSame(PracticeUiState.Loading, viewModel.uiState.value)
-        advanceUntilIdle()
+        runCurrent()
+        sessions.emit(emptyList())
+        runCurrent()
 
-        assertEquals(PracticeUiState.Content(listOf(testPath)), viewModel.uiState.value)
-        assertEquals(2, repository.loadCount)
+        assertEquals(2, content.loadCount)
+        assertEquals(PracticeUiState.Content::class, viewModel.uiState.value::class)
     }
+
+    private fun viewModel(
+        paths: List<MindfulnessPath> = TestMindfulnessCatalogue.paths,
+        sessions: Flow<List<MindfulnessSession>> = MutableSharedFlow(),
+        contentRepository: FakeContentRepository = FakeContentRepository { paths },
+    ) = PracticeViewModel(
+        contentRepository,
+        FakeSessionRepository(sessions),
+    )
 
     private class FakeContentRepository(
         var load: suspend () -> List<MindfulnessPath>,
@@ -86,12 +151,10 @@ class PracticeViewModelTest {
         }
     }
 
-    private companion object {
-        val testPath = MindfulnessPath(
-            id = "test-path",
-            title = "Test path",
-            description = "Test description.",
-            steps = emptyList(),
-        )
+    private class FakeSessionRepository(
+        private val sessions: Flow<List<MindfulnessSession>>,
+    ) : MindfulnessSessionRepository {
+        override fun observeSessions(): Flow<List<MindfulnessSession>> = sessions
+        override suspend fun addSession(session: MindfulnessSession) = Unit
     }
 }

@@ -55,6 +55,8 @@ fun BreathingExerciseScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val onBack = {
         when (uiState) {
+            BreathingExerciseUiState.LoadingContent,
+            BreathingExerciseUiState.Unavailable,
             is BreathingExerciseUiState.Setup,
             is BreathingExerciseUiState.Finished,
             -> onNavigateBack()
@@ -111,6 +113,8 @@ internal fun BreathingExerciseScreen(
         )
 
         when (uiState) {
+            BreathingExerciseUiState.LoadingContent -> LinkedContentLoading()
+            BreathingExerciseUiState.Unavailable -> LinkedContentUnavailable(onBack)
             is BreathingExerciseUiState.Setup -> SetupContent(
                 state = uiState,
                 onStart = onStart,
@@ -205,13 +209,15 @@ private fun SetupContent(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        val linkedContent = state.linkedContent
         Text(
-            text = stringResource(R.string.breathing_exercise),
+            text = linkedContent?.title ?: stringResource(R.string.breathing_exercise),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
-            text = stringResource(R.string.breathing_exercise_description),
+            text = linkedContent?.description
+                ?: stringResource(R.string.breathing_exercise_description),
             modifier = Modifier.padding(top = 12.dp),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyLarge,
@@ -235,6 +241,46 @@ private fun SetupContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.start))
+        }
+    }
+}
+
+@Composable
+private fun LinkedContentLoading() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        CircularProgressIndicator()
+        Text(
+            stringResource(R.string.loading_practice_step),
+            modifier = Modifier.padding(top = 16.dp),
+        )
+    }
+}
+
+@Composable
+private fun LinkedContentUnavailable(onBack: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            stringResource(R.string.practice_step_unavailable),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier.padding(top = 20.dp),
+        ) {
+            Text(stringResource(R.string.back_to_path))
         }
     }
 }

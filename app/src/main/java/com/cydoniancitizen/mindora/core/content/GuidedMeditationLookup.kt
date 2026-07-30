@@ -9,12 +9,10 @@ data class ResolvedGuidedMeditation(
 
 suspend fun MindfulnessContentRepository.findGuidedMeditation(
     stepId: String,
-): ResolvedGuidedMeditation? {
-    getPaths().forEach { path ->
-        val step = path.steps.firstOrNull { it.id == stepId } ?: return@forEach
-        return (step as? GuidedMeditationStep)?.let {
-            ResolvedGuidedMeditation(pathId = path.id, step = it)
+): ResolvedGuidedMeditation? = getPaths()
+    .findStep(stepId)
+    ?.let { located ->
+        (located.step as? GuidedMeditationStep)?.let { step ->
+            ResolvedGuidedMeditation(pathId = located.path.id, step = step)
         }
     }
-    return null
-}

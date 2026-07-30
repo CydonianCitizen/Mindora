@@ -9,10 +9,24 @@ internal object FreeMeditationDurations {
     val default: Duration = Duration.ofMinutes(10)
 }
 
+data class LinkedFreeMeditationDetails(
+    val pathId: String,
+    val stepId: String,
+    val title: String,
+    val description: String,
+    val plannedDuration: Duration,
+)
+
 sealed interface FreeMeditationUiState {
+    data object LoadingContent : FreeMeditationUiState
+    data object Unavailable : FreeMeditationUiState
+
     data class Setup(
-        val selectedDuration: Duration = FreeMeditationDurations.default,
-        val availableDurations: List<Duration> = FreeMeditationDurations.options,
+        val linkedContent: LinkedFreeMeditationDetails? = null,
+        val selectedDuration: Duration =
+            linkedContent?.plannedDuration ?: FreeMeditationDurations.default,
+        val availableDurations: List<Duration> =
+            if (linkedContent == null) FreeMeditationDurations.options else emptyList(),
     ) : FreeMeditationUiState
 
     data class Running(

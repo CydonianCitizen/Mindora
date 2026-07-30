@@ -1,7 +1,12 @@
 package com.cydoniancitizen.mindora.feature.freemeditation
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
+import com.cydoniancitizen.mindora.core.content.decodeContentRouteId
+import com.cydoniancitizen.mindora.core.content.findStep
+import com.cydoniancitizen.mindora.core.content.model.FreeMeditationStep
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
@@ -24,11 +29,21 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class FreeMeditationViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val contentRepository: MindfulnessContentRepository,
     private val repository: MindfulnessSessionRepository,
     private val timeSource: SessionTimeSource,
 ) : ViewModel() {
+    private val hasLinkedStep = savedStateHandle.contains(STEP_ID_ARGUMENT)
+    private val stepId = savedStateHandle.get<String>(STEP_ID_ARGUMENT)
+        ?.takeIf(String::isNotBlank)
+    private var linkedContent: LinkedFreeMeditationDetails? = null
     private val _uiState = MutableStateFlow<FreeMeditationUiState>(
-        FreeMeditationUiState.Setup(),
+        if (hasLinkedStep) {
+            FreeMeditationUiState.LoadingContent
+        } else {
+            FreeMeditationUiState.Setup()
+        },
     )
     val uiState: StateFlow<FreeMeditationUiState> = _uiState.asStateFlow()
 
@@ -36,6 +51,10 @@ class FreeMeditationViewModel @Inject constructor(
 
     internal val hasActiveTicker: Boolean
         get() = tickerJob?.isActive == true
+
+    init {
+        if (hasLinkedStep) resolveContent()
+    }
 
     fun selectDuration(duration: Duration) {
         val setup = _uiState.value as? FreeMeditationUiState.Setup ?: return
@@ -168,9 +187,7 @@ class FreeMeditationViewModel @Inject constructor(
 
     fun discard() {
         val failed = _uiState.value as? FreeMeditationUiState.SaveFailed ?: return
-        _uiState.value = FreeMeditationUiState.Setup(
-            selectedDuration = requireNotNull(failed.pendingSession.plannedDuration),
-        )
+        _uiState.value = setupState(requireNotNull(failed.pendingSession.plannedDuration))
     }
 
     private fun finishOrReset(
@@ -180,9 +197,7 @@ class FreeMeditationViewModel @Inject constructor(
     ) {
         stopTicker()
         if (activeDuration.isZero || activeDuration.isNegative) {
-            _uiState.value = FreeMeditationUiState.Setup(
-                selectedDuration = plannedDuration,
-            )
+            _uiState.value = setupState(plannedDuration)
             return
         }
         val status = if (activeDuration >= plannedDuration) {
@@ -227,8 +242,8 @@ class FreeMeditationViewModel @Inject constructor(
             id = UUID.randomUUID().toString(),
             type = MindfulnessSessionType.FREE_MEDITATION,
             status = status,
-            sourcePathId = null,
-            sourceStepId = null,
+            sourcePathId = linkedContent?.pathId,
+            sourceStepId = linkedContent?.stepId,
             startedAt = startedAt,
             activeDuration = activeDuration,
             plannedDuration = plannedDuration,
@@ -267,6 +282,47 @@ class FreeMeditationViewModel @Inject constructor(
         return running.accumulatedActiveDuration.plusMillis(runningSegmentMillis)
     }
 
+    private fun resolveContent() {
+        val requestedStepId = stepId
+        if (requestedStepId.isNullOrBlank()) {
+            _uiState.value = FreeMeditationUiState.Unavailable
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = try {
+                val paths = contentRepository.getPaths()
+                val located = paths.findStep(requestedStepId)
+                    ?: decodeContentRouteId(requestedStepId)?.let(paths::findStep)
+                val step = located?.step as? FreeMeditationStep
+                if (located == null || step == null) {
+                    FreeMeditationUiState.Unavailable
+                } else {
+                    val details = LinkedFreeMeditationDetails(
+                        pathId = located.path.id,
+                        stepId = step.id,
+                        title = step.title,
+                        description = step.description,
+                        plannedDuration = Duration.ofSeconds(
+                            step.suggestedDurationSeconds.toLong(),
+                        ),
+                    )
+                    linkedContent = details
+                    FreeMeditationUiState.Setup(linkedContent = details)
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                FreeMeditationUiState.Unavailable
+            }
+        }
+    }
+
+    private fun setupState(selectedDuration: Duration): FreeMeditationUiState.Setup =
+        FreeMeditationUiState.Setup(
+            linkedContent = linkedContent,
+            selectedDuration = selectedDuration,
+        )
+
     private fun startTicker() {
         stopTicker()
         tickerJob = viewModelScope.launch {
@@ -289,6 +345,7 @@ class FreeMeditationViewModel @Inject constructor(
 
     private companion object {
         const val TICK_INTERVAL_MILLIS = 1_000L
+        const val STEP_ID_ARGUMENT = "stepId"
     }
 }
 

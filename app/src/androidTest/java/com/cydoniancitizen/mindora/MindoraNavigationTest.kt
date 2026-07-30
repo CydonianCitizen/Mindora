@@ -12,6 +12,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cydoniancitizen.mindora.navigation.GuidedMeditationDestination
+import com.cydoniancitizen.mindora.navigation.BreathingExerciseDestination
+import com.cydoniancitizen.mindora.navigation.FreeMeditationDestination
+import com.cydoniancitizen.mindora.navigation.PathDetailDestination
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -29,6 +32,24 @@ class MindoraNavigationTest {
 
         assertEquals("practice/guided/guided%2Fstep%20with%20space", route)
         assertEquals(stepId, Uri.decode(route.substringAfter("practice/guided/")))
+    }
+
+    @Test
+    fun pathAndLinkedRuntimeRoutesSafelyEncodeContentIds() {
+        val id = "path/step with space"
+
+        assertEquals(
+            "practice/path/path%2Fstep%20with%20space",
+            PathDetailDestination.createRoute(id),
+        )
+        assertEquals(
+            "practice/free-meditation/path%2Fstep%20with%20space",
+            FreeMeditationDestination.createLinkedRoute(id),
+        )
+        assertEquals(
+            "practice/breathing/path%2Fstep%20with%20space",
+            BreathingExerciseDestination.createLinkedRoute(id),
+        )
     }
     @Test
     fun topLevelDestinationsNavigateWithoutDuplicatingActiveDestination() {

@@ -10,6 +10,19 @@
     <string name="free_meditation">Free meditation</string>
     <string name="free_meditation_description">Meditate with a simple countdown timer.</string>
     <string name="bundled_mindfulness_paths">Mindfulness paths</string>
+    <string name="mindfulness_path">Mindfulness path</string>
+    <string name="path_progress">%1$d of %2$d steps completed</string>
+    <string name="path_step_number">%1$d. %2$s</string>
+    <string name="practice_duration">Duration: %1$s</string>
+    <string name="completed">Completed</string>
+    <string name="not_completed">Not completed</string>
+    <string name="open_step">Open step</string>
+    <string name="path_unavailable">This mindfulness path is unavailable.</string>
+    <string name="path_loading_error">This mindfulness path couldn’t be loaded.</string>
+    <string name="back_to_practice">Back to Practice</string>
+    <string name="back_to_path">Back to path</string>
+    <string name="loading_practice_step">Loading practice…</string>
+    <string name="practice_step_unavailable">This practice is unavailable.</string>
     <string name="breathing_exercise">Breathing exercise</string>
     <string name="breathing_exercise_description">Follow the breathing rhythm for five cycles.</string>
     <string name="breathing_cycle_count">%1$d cycles</string>
@@ -60,15 +73,10 @@
     <string name="history_session_started_at">%1$s at %2$s</string>
     <string name="history_session_active_duration">%1$s active</string>
     <string name="retry">Retry</string>
-    <plurals name="practice_step_count">
-        <item quantity="one">%1$d step</item>
-        <item quantity="other">%1$d steps</item>
-    </plurals>
     <string name="guided_meditation">Guided meditation</string>
     <string name="loading_guided_meditation">Loading guided meditation…</string>
     <string name="guided_meditation_unavailable">This guided meditation is unavailable.</string>
     <string name="guided_content_error">Guided meditation content couldn’t be loaded.</string>
-    <string name="guided_planned_duration">Duration: %1$s</string>
     <string name="preparing_audio">Preparing audio…</string>
     <string name="playing">Playing</string>
     <string name="guided_progress_accessibility">%1$s, %2$s elapsed of %3$s total</string>

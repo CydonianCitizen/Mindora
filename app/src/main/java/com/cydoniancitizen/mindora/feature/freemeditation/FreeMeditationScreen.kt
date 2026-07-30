@@ -48,6 +48,8 @@ fun FreeMeditationScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val onBack = {
         when (uiState) {
+            FreeMeditationUiState.LoadingContent,
+            FreeMeditationUiState.Unavailable,
             is FreeMeditationUiState.Setup,
             is FreeMeditationUiState.Finished,
             -> onNavigateBack()
@@ -106,6 +108,8 @@ internal fun FreeMeditationScreen(
         )
 
         when (uiState) {
+            FreeMeditationUiState.LoadingContent -> LinkedContentLoading()
+            FreeMeditationUiState.Unavailable -> LinkedContentUnavailable(onBack)
             is FreeMeditationUiState.Setup -> SetupContent(
                 state = uiState,
                 onSelectDuration = onSelectDuration,
@@ -191,32 +195,58 @@ private fun SetupContent(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = stringResource(R.string.select_duration),
-            modifier = Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            state.availableDurations.forEach { duration ->
-                FilterChip(
-                    selected = duration == state.selectedDuration,
-                    onClick = { onSelectDuration(duration) },
-                    label = {
-                        Text(
-                            stringResource(
-                                R.string.duration_minutes,
-                                duration.toMinutes(),
-                            ),
-                        )
-                    },
-                )
+        val linkedContent = state.linkedContent
+        if (linkedContent == null) {
+            Text(
+                text = stringResource(R.string.select_duration),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                state.availableDurations.forEach { duration ->
+                    FilterChip(
+                        selected = duration == state.selectedDuration,
+                        onClick = { onSelectDuration(duration) },
+                        label = {
+                            Text(
+                                stringResource(
+                                    R.string.duration_minutes,
+                                    duration.toMinutes(),
+                                ),
+                            )
+                        },
+                    )
+                }
             }
+        } else {
+            Text(
+                text = linkedContent.title,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                text = linkedContent.description,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(
+                    R.string.practice_duration,
+                    formatCountdown(linkedContent.plannedDuration),
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
         Spacer(modifier = Modifier.height(32.dp))
         Button(
@@ -224,6 +254,46 @@ private fun SetupContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.start))
+        }
+    }
+}
+
+@Composable
+private fun LinkedContentLoading() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        CircularProgressIndicator()
+        Text(
+            stringResource(R.string.loading_practice_step),
+            modifier = Modifier.padding(top = 16.dp),
+        )
+    }
+}
+
+@Composable
+private fun LinkedContentUnavailable(onBack: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            stringResource(R.string.practice_step_unavailable),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier.padding(top = 20.dp),
+        ) {
+            Text(stringResource(R.string.back_to_path))
         }
     }
 }

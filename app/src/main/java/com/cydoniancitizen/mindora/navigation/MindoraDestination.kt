@@ -39,10 +39,18 @@ enum class MindoraDestination(
 
 object FreeMeditationDestination {
     const val route = "practice/free-meditation"
+    const val stepIdArgument = "stepId"
+    const val linkedRoute = "$route/{$stepIdArgument}"
+
+    fun createLinkedRoute(stepId: String): String = "$route/${Uri.encode(stepId)}"
 }
 
 object BreathingExerciseDestination {
     const val route = "practice/breathing"
+    const val stepIdArgument = "stepId"
+    const val linkedRoute = "$route/{$stepIdArgument}"
+
+    fun createLinkedRoute(stepId: String): String = "$route/${Uri.encode(stepId)}"
 }
 
 object GuidedMeditationDestination {
@@ -50,4 +58,11 @@ object GuidedMeditationDestination {
     const val route = "practice/guided/{$stepIdArgument}"
 
     fun createRoute(stepId: String): String = "practice/guided/${Uri.encode(stepId)}"
+}
+
+object PathDetailDestination {
+    const val pathIdArgument = "pathId"
+    const val route = "practice/path/{$pathIdArgument}"
+
+    fun createRoute(pathId: String): String = "practice/path/${Uri.encode(pathId)}"
 }

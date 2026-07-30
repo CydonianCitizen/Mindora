@@ -239,7 +239,7 @@ private fun ReadyContent(
         )
         Text(
             stringResource(
-                R.string.guided_planned_duration,
+                R.string.practice_duration,
                 formatGuidedDuration(state.meditation.plannedDuration),
             ),
             modifier = Modifier.padding(top = 16.dp),

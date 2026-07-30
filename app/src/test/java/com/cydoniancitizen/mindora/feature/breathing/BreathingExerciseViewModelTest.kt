@@ -1,17 +1,22 @@
 package com.cydoniancitizen.mindora.feature.breathing
 
+import androidx.lifecycle.SavedStateHandle
+import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
+import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
 import com.cydoniancitizen.mindora.feature.practice.MainDispatcherRule
+import com.cydoniancitizen.mindora.testsupport.TestMindfulnessCatalogue
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -303,10 +308,92 @@ class BreathingExerciseViewModelTest {
         viewModel.pause()
     }
 
+    @Test
+    fun `valid linked breathing step resolves exact catalogue configuration`() = runTest {
+        val viewModel = viewModel(stepId = "breathing-step")
+
+        assertTrue(viewModel.uiState.value is BreathingExerciseUiState.LoadingContent)
+        advanceUntilIdle()
+
+        val setup = viewModel.state<BreathingExerciseUiState.Setup>()
+        assertEquals("Breathing step", setup.linkedContent?.title)
+        assertEquals(Duration.ofSeconds(3), setup.config.inhaleDuration)
+        assertEquals(Duration.ofSeconds(1), setup.config.holdAfterInhaleDuration)
+        assertEquals(Duration.ofSeconds(5), setup.config.exhaleDuration)
+        assertEquals(Duration.ofSeconds(1), setup.config.holdAfterExhaleDuration)
+        assertEquals(2, setup.config.cycles)
+        assertEquals(Duration.ofSeconds(20), setup.plannedDuration)
+
+        viewModel.start()
+        assertEquals(
+            Duration.ofSeconds(3),
+            viewModel.state<BreathingExerciseUiState.Running>().phaseRemainingDuration,
+        )
+        viewModel.pause()
+    }
+
+    @Test
+    fun `unknown guided and free linked steps are unavailable`() = runTest {
+        listOf("missing", "guided-step", "free-step").forEach { stepId ->
+            val viewModel = viewModel(stepId = stepId)
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value is BreathingExerciseUiState.Unavailable)
+        }
+    }
+
+    @Test
+    fun `linked natural completion persists catalogue identity and planned duration`() = runTest {
+        val repository = FakeSessionRepository()
+        val time = FakeTimeSource(elapsedRealtimeMillis = 1_000)
+        val viewModel = viewModel(repository, time, stepId = "breathing-step")
+        advanceUntilIdle()
+        viewModel.start()
+        time.elapsedRealtimeMillis += Duration.ofSeconds(20).toMillis()
+
+        viewModel.refreshTime()
+        runCurrent()
+
+        val session = repository.saved.single()
+        assertEquals(MindfulnessSessionStatus.COMPLETED, session.status)
+        assertEquals("first-path", session.sourcePathId)
+        assertEquals("breathing-step", session.sourceStepId)
+        assertEquals(Duration.ofSeconds(20), session.plannedDuration)
+    }
+
+    @Test
+    fun `linked interrupted retry preserves catalogue identity and UUID`() = runTest {
+        val repository = FakeSessionRepository(failAdds = true)
+        val time = FakeTimeSource(elapsedRealtimeMillis = 1_000)
+        val viewModel = viewModel(repository, time, stepId = "breathing-step")
+        advanceUntilIdle()
+        viewModel.start()
+        time.elapsedRealtimeMillis = 2_000
+        viewModel.requestEnd()
+        viewModel.confirmEnd()
+        runCurrent()
+        val pending = viewModel.state<BreathingExerciseUiState.SaveFailed>().pendingSession
+
+        repository.failAdds = false
+        viewModel.retrySave()
+        runCurrent()
+
+        assertEquals(MindfulnessSessionStatus.INTERRUPTED, pending.status)
+        assertEquals("first-path", pending.sourcePathId)
+        assertEquals("breathing-step", pending.sourceStepId)
+        assertEquals(listOf(pending.id, pending.id), repository.attempts.map { it.id })
+    }
+
     private fun viewModel(
         repository: FakeSessionRepository = FakeSessionRepository(),
         time: FakeTimeSource = FakeTimeSource(),
-    ) = BreathingExerciseViewModel(repository, time)
+        stepId: String? = null,
+        contentRepository: MindfulnessContentRepository = FakeContentRepository(),
+    ) = BreathingExerciseViewModel(
+        SavedStateHandle(stepId?.let { mapOf("stepId" to it) }.orEmpty()),
+        contentRepository,
+        repository,
+        time,
+    )
 
     private inline fun <reified T : BreathingExerciseUiState>
         BreathingExerciseViewModel.state(): T {
@@ -348,6 +435,11 @@ class BreathingExerciseViewModelTest {
             if (failAdds) error("Test persistence failure.")
             saved += session
         }
+    }
+
+    private class FakeContentRepository : MindfulnessContentRepository {
+        override suspend fun getPaths(): List<MindfulnessPath> =
+            TestMindfulnessCatalogue.paths
     }
 
     private companion object {

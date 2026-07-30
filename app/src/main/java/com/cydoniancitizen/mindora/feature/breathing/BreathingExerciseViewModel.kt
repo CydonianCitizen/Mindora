@@ -1,7 +1,12 @@
 package com.cydoniancitizen.mindora.feature.breathing
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
+import com.cydoniancitizen.mindora.core.content.decodeContentRouteId
+import com.cydoniancitizen.mindora.core.content.findStep
+import com.cydoniancitizen.mindora.core.content.model.BreathingExerciseStep
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
@@ -24,12 +29,22 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class BreathingExerciseViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val contentRepository: MindfulnessContentRepository,
     private val repository: MindfulnessSessionRepository,
     private val timeSource: SessionTimeSource,
 ) : ViewModel() {
-    private val config = ProductionBreathingExerciseConfig
+    private val hasLinkedStep = savedStateHandle.contains(STEP_ID_ARGUMENT)
+    private val stepId = savedStateHandle.get<String>(STEP_ID_ARGUMENT)
+        ?.takeIf(String::isNotBlank)
+    private var config = ProductionBreathingExerciseConfig
+    private var linkedContent: LinkedBreathingExerciseDetails? = null
     private val _uiState = MutableStateFlow<BreathingExerciseUiState>(
-        BreathingExerciseUiState.Setup(config),
+        if (hasLinkedStep) {
+            BreathingExerciseUiState.LoadingContent
+        } else {
+            BreathingExerciseUiState.Setup(config)
+        },
     )
     val uiState: StateFlow<BreathingExerciseUiState> = _uiState.asStateFlow()
 
@@ -37,6 +52,10 @@ class BreathingExerciseViewModel @Inject constructor(
 
     internal val hasActiveTicker: Boolean
         get() = tickerJob?.isActive == true
+
+    init {
+        if (hasLinkedStep) resolveContent()
+    }
 
     fun start() {
         if (_uiState.value !is BreathingExerciseUiState.Setup) return
@@ -188,7 +207,7 @@ class BreathingExerciseViewModel @Inject constructor(
 
     fun discard() {
         if (_uiState.value !is BreathingExerciseUiState.SaveFailed) return
-        _uiState.value = BreathingExerciseUiState.Setup(config)
+        _uiState.value = setupState()
     }
 
     private fun finishOrReset(
@@ -197,7 +216,7 @@ class BreathingExerciseViewModel @Inject constructor(
     ) {
         stopTicker()
         if (elapsedDuration.isZero || elapsedDuration.isNegative) {
-            _uiState.value = BreathingExerciseUiState.Setup(config)
+            _uiState.value = setupState()
             return
         }
 
@@ -225,8 +244,8 @@ class BreathingExerciseViewModel @Inject constructor(
             id = UUID.randomUUID().toString(),
             type = MindfulnessSessionType.BREATHING_EXERCISE,
             status = status,
-            sourcePathId = null,
-            sourceStepId = null,
+            sourcePathId = linkedContent?.pathId,
+            sourceStepId = linkedContent?.stepId,
             startedAt = startedAt,
             activeDuration = timeline.activeDuration.coerceAtMost(config.plannedDuration),
             plannedDuration = config.plannedDuration,
@@ -275,6 +294,55 @@ class BreathingExerciseViewModel @Inject constructor(
         return running.accumulatedActiveDuration.plusMillis(runningSegmentMillis)
     }
 
+    private fun resolveContent() {
+        val requestedStepId = stepId
+        if (requestedStepId.isNullOrBlank()) {
+            _uiState.value = BreathingExerciseUiState.Unavailable
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = try {
+                val paths = contentRepository.getPaths()
+                val located = paths.findStep(requestedStepId)
+                    ?: decodeContentRouteId(requestedStepId)?.let(paths::findStep)
+                val step = located?.step as? BreathingExerciseStep
+                if (located == null || step == null) {
+                    BreathingExerciseUiState.Unavailable
+                } else {
+                    val resolvedConfig = BreathingExerciseConfig(
+                        inhaleDuration = Duration.ofSeconds(step.inhaleSeconds.toLong()),
+                        holdAfterInhaleDuration =
+                            Duration.ofSeconds(step.holdAfterInhaleSeconds.toLong()),
+                        exhaleDuration = Duration.ofSeconds(step.exhaleSeconds.toLong()),
+                        holdAfterExhaleDuration =
+                            Duration.ofSeconds(step.holdAfterExhaleSeconds.toLong()),
+                        cycles = step.cycles,
+                    )
+                    val details = LinkedBreathingExerciseDetails(
+                        pathId = located.path.id,
+                        stepId = step.id,
+                        title = step.title,
+                        description = step.description,
+                        config = resolvedConfig,
+                    )
+                    config = resolvedConfig
+                    linkedContent = details
+                    setupState()
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                BreathingExerciseUiState.Unavailable
+            }
+        }
+    }
+
+    private fun setupState(): BreathingExerciseUiState.Setup =
+        BreathingExerciseUiState.Setup(
+            config = config,
+            linkedContent = linkedContent,
+        )
+
     private fun startTicker() {
         stopTicker()
         tickerJob = viewModelScope.launch {
@@ -297,6 +365,7 @@ class BreathingExerciseViewModel @Inject constructor(
 
     private companion object {
         const val TICK_INTERVAL_MILLIS = 100L
+        const val STEP_ID_ARGUMENT = "stepId"
     }
 }
 
