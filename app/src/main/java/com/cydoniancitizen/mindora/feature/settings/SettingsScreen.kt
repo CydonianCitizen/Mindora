@@ -35,8 +35,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selectableGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -123,7 +125,9 @@ internal fun SettingsScreen(
     Column(modifier = modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.settings),
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier
+                .padding(24.dp)
+                .semantics { heading() },
             style = MaterialTheme.typography.headlineMedium,
         )
         when (uiState) {
@@ -184,6 +188,7 @@ private fun SettingsContent(
         item {
             Text(
                 text = stringResource(R.string.weekly_goal),
+                modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.titleLarge,
             )
         }
@@ -207,6 +212,7 @@ private fun SettingsContent(
         item {
             Text(
                 text = stringResource(R.string.daily_reminder),
+                modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.titleLarge,
             )
         }
@@ -276,7 +282,7 @@ private fun GoalChoice(
     val label = if (minutes == null) {
         stringResource(R.string.off)
     } else {
-        stringResource(R.string.duration_minutes, minutes)
+        pluralStringResource(R.plurals.duration_minutes, minutes, minutes)
     }
     Row(
         modifier = Modifier

@@ -1,7 +1,9 @@
 package com.cydoniancitizen.mindora.feature.home
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.cydoniancitizen.mindora.ui.theme.MindoraTheme
@@ -27,6 +29,12 @@ class HomeScreenTest {
         }
 
         composeRule.onNodeWithText("This week").assertIsDisplayed()
+        check(
+            composeRule.onNodeWithText("Home")
+                .fetchSemanticsNode()
+                .config
+                .contains(SemanticsProperties.Heading),
+        )
         composeRule.onNodeWithText("No weekly goal is set.").assertIsDisplayed()
         composeRule.onNodeWithText("Set a goal").performClick()
         assertTrue(openedSettings)
@@ -50,5 +58,6 @@ class HomeScreenTest {
 
         composeRule.onNodeWithText("25 of 60 minutes").assertIsDisplayed()
         composeRule.onNodeWithText("Weekly goal in progress").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("25 of 60 minutes").assertIsDisplayed()
     }
 }

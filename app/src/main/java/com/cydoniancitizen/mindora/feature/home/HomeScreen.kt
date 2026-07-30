@@ -18,8 +18,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,17 +51,21 @@ internal fun HomeScreen(
     Column(modifier = modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.home),
-            modifier = Modifier.padding(
-                start = 24.dp,
-                top = 24.dp,
-                end = 24.dp,
-                bottom = 8.dp,
-            ),
+            modifier = Modifier
+                .padding(
+                    start = 24.dp,
+                    top = 24.dp,
+                    end = 24.dp,
+                    bottom = 8.dp,
+                )
+                .semantics { heading() },
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
             text = stringResource(R.string.this_week),
-            modifier = Modifier.padding(horizontal = 24.dp),
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .semantics { heading() },
             style = MaterialTheme.typography.titleLarge,
         )
 
@@ -114,6 +120,7 @@ private fun HomeGoalSummary(
                 ) {
                     Text(
                         text = stringResource(R.string.weekly_goal),
+                        modifier = Modifier.semantics { heading() },
                         style = MaterialTheme.typography.titleMedium,
                     )
                     if (state.targetMinutes == null) {
@@ -161,12 +168,21 @@ private fun HomeGoalSummary(
 
 @Composable
 private fun weeklyProgressText(duration: Duration, targetMinutes: Int): String = when {
-    duration.isZero -> stringResource(R.string.weekly_progress_minutes, 0, targetMinutes)
-    duration < Duration.ofMinutes(1) ->
-        stringResource(R.string.weekly_progress_less_than_minute, targetMinutes)
+    duration.isZero -> pluralStringResource(
+        R.plurals.weekly_progress_minutes,
+        targetMinutes,
+        0,
+        targetMinutes,
+    )
+    duration < Duration.ofMinutes(1) -> pluralStringResource(
+        R.plurals.weekly_progress_less_than_minute,
+        targetMinutes,
+        targetMinutes,
+    )
 
-    else -> stringResource(
-        R.string.weekly_progress_minutes,
+    else -> pluralStringResource(
+        R.plurals.weekly_progress_minutes,
+        targetMinutes,
         duration.toMinutes(),
         targetMinutes,
     )
@@ -176,5 +192,9 @@ private fun weeklyProgressText(duration: Duration, targetMinutes: Int): String =
 private fun practicedDurationText(duration: Duration): String = when {
     duration.isZero -> stringResource(R.string.zero_minutes)
     duration < Duration.ofMinutes(1) -> stringResource(R.string.less_than_one_minute)
-    else -> stringResource(R.string.duration_minutes, duration.toMinutes())
+    else -> pluralStringResource(
+        R.plurals.duration_minutes,
+        duration.toMinutes().toInt(),
+        duration.toMinutes(),
+    )
 }

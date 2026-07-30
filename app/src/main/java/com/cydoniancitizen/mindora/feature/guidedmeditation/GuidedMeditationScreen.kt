@@ -32,8 +32,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -91,7 +92,12 @@ internal fun GuidedMeditationScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.guided_meditation)) },
+                title = {
+                    Text(
+                        stringResource(R.string.guided_meditation),
+                        modifier = Modifier.semantics { heading() },
+                    )
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = {
@@ -231,7 +237,11 @@ private fun ReadyContent(
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(state.meditation.title, style = MaterialTheme.typography.headlineMedium)
+        Text(
+            state.meditation.title,
+            modifier = Modifier.semantics { heading() },
+            style = MaterialTheme.typography.headlineMedium,
+        )
         Text(
             state.meditation.description,
             modifier = Modifier.padding(top = 12.dp),
@@ -261,11 +271,16 @@ private fun PreparingContent(state: GuidedMeditationUiState.Preparing) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(state.meditation.title, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            state.meditation.title,
+            modifier = Modifier.semantics { heading() },
+            style = MaterialTheme.typography.headlineSmall,
+        )
         CircularProgressIndicator(modifier = Modifier.padding(top = 24.dp))
         Text(
             stringResource(R.string.preparing_audio),
@@ -296,18 +311,24 @@ private fun PlaybackContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(meditation.title, textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineMedium)
+        Text(
+            meditation.title,
+            modifier = Modifier.semantics { heading() },
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.headlineMedium,
+        )
         Text(status, modifier = Modifier.padding(top = 12.dp), style = MaterialTheme.typography.titleMedium)
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 32.dp)
-                .semantics { contentDescription = progressDescription },
+                .semantics { stateDescription = progressDescription },
         )
         Text(
             stringResource(
@@ -365,12 +386,14 @@ private fun SaveFailedContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
             stringResource(R.string.session_save_failed),
+            modifier = Modifier.semantics { heading() },
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleLarge,
         )
@@ -411,11 +434,17 @@ private fun PlaybackFailedContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(message, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge)
+        Text(
+            message,
+            modifier = Modifier.semantics { heading() },
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleLarge,
+        )
         if (state.result == PlaybackFailureResult.NOTHING_SAVED) {
             Button(
                 onClick = onRetry,
@@ -436,7 +465,10 @@ private fun PlaybackFailedContent(
 @Composable
 private fun CenteredProgress(message: String) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -454,11 +486,17 @@ private fun MessageContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(message, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge)
+        Text(
+            message,
+            modifier = Modifier.semantics { heading() },
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleLarge,
+        )
         Button(
             onClick = onAction,
             modifier = Modifier

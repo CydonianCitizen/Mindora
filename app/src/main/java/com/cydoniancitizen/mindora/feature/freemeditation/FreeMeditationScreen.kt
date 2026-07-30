@@ -2,6 +2,7 @@ package com.cydoniancitizen.mindora.feature.freemeditation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
@@ -27,8 +29,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -106,42 +110,47 @@ internal fun FreeMeditationScreen(
                 uiState !is FreeMeditationUiState.SaveFailed,
             onBack = onBack,
         )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        ) {
+            when (uiState) {
+                FreeMeditationUiState.LoadingContent -> LinkedContentLoading()
+                FreeMeditationUiState.Unavailable -> LinkedContentUnavailable(onBack)
+                is FreeMeditationUiState.Setup -> SetupContent(
+                    state = uiState,
+                    onSelectDuration = onSelectDuration,
+                    onStart = onStart,
+                )
 
-        when (uiState) {
-            FreeMeditationUiState.LoadingContent -> LinkedContentLoading()
-            FreeMeditationUiState.Unavailable -> LinkedContentUnavailable(onBack)
-            is FreeMeditationUiState.Setup -> SetupContent(
-                state = uiState,
-                onSelectDuration = onSelectDuration,
-                onStart = onStart,
-            )
+                is FreeMeditationUiState.Running -> SessionContent(
+                    remainingDuration = uiState.remainingDuration,
+                    status = stringResource(R.string.running),
+                    primaryActionLabel = stringResource(R.string.pause),
+                    onPrimaryAction = onPause,
+                    onRequestEnd = onRequestEnd,
+                )
 
-            is FreeMeditationUiState.Running -> SessionContent(
-                remainingDuration = uiState.remainingDuration,
-                status = stringResource(R.string.running),
-                primaryActionLabel = stringResource(R.string.pause),
-                onPrimaryAction = onPause,
-                onRequestEnd = onRequestEnd,
-            )
+                is FreeMeditationUiState.Paused -> SessionContent(
+                    remainingDuration = uiState.remainingDuration,
+                    status = stringResource(R.string.paused),
+                    primaryActionLabel = stringResource(R.string.resume),
+                    onPrimaryAction = onResume,
+                    onRequestEnd = onRequestEnd,
+                )
 
-            is FreeMeditationUiState.Paused -> SessionContent(
-                remainingDuration = uiState.remainingDuration,
-                status = stringResource(R.string.paused),
-                primaryActionLabel = stringResource(R.string.resume),
-                onPrimaryAction = onResume,
-                onRequestEnd = onRequestEnd,
-            )
+                is FreeMeditationUiState.Saving -> SavingContent()
+                is FreeMeditationUiState.Finished -> FinishedContent(
+                    state = uiState,
+                    onDone = onDone,
+                )
 
-            is FreeMeditationUiState.Saving -> SavingContent()
-            is FreeMeditationUiState.Finished -> FinishedContent(
-                state = uiState,
-                onDone = onDone,
-            )
-
-            is FreeMeditationUiState.SaveFailed -> SaveFailedContent(
-                onRetrySave = onRetrySave,
-                onDiscard = onDiscard,
-            )
+                is FreeMeditationUiState.SaveFailed -> SaveFailedContent(
+                    onRetrySave = onRetrySave,
+                    onDiscard = onDiscard,
+                )
+            }
         }
     }
 
@@ -178,6 +187,7 @@ private fun FreeMeditationHeader(
         }
         Text(
             text = stringResource(R.string.free_meditation),
+            modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.headlineSmall,
         )
     }
@@ -191,7 +201,8 @@ private fun SetupContent(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -199,7 +210,9 @@ private fun SetupContent(
         if (linkedContent == null) {
             Text(
                 text = stringResource(R.string.select_duration),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { heading() },
                 style = MaterialTheme.typography.titleMedium,
             )
             Row(
@@ -215,8 +228,9 @@ private fun SetupContent(
                         onClick = { onSelectDuration(duration) },
                         label = {
                             Text(
-                                stringResource(
-                                    R.string.duration_minutes,
+                                pluralStringResource(
+                                    R.plurals.duration_minutes,
+                                    duration.toMinutes().toInt(),
                                     duration.toMinutes(),
                                 ),
                             )
@@ -227,7 +241,9 @@ private fun SetupContent(
         } else {
             Text(
                 text = linkedContent.title,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { heading() },
                 style = MaterialTheme.typography.headlineMedium,
             )
             Text(
@@ -263,6 +279,7 @@ private fun LinkedContentLoading() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -280,6 +297,7 @@ private fun LinkedContentUnavailable(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -314,6 +332,7 @@ private fun SessionContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -351,6 +370,7 @@ private fun SavingContent() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -376,12 +396,14 @@ private fun FinishedContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = result,
+            modifier = Modifier.semantics { heading() },
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.headlineMedium,
         )
@@ -417,12 +439,14 @@ private fun SaveFailedContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = stringResource(R.string.session_save_failed),
+            modifier = Modifier.semantics { heading() },
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleLarge,
         )

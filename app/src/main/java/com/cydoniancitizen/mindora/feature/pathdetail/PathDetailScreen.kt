@@ -27,7 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,7 +65,12 @@ internal fun PathDetailScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.mindfulness_path)) },
+                title = {
+                    Text(
+                        stringResource(R.string.mindfulness_path),
+                        modifier = Modifier.semantics { heading() },
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -139,18 +148,24 @@ private fun PathContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(state.title, style = MaterialTheme.typography.headlineMedium)
+            val progressDescription = pluralStringResource(
+                R.plurals.path_progress,
+                state.totalSteps,
+                state.completedSteps,
+                state.totalSteps,
+            )
+            Text(
+                state.title,
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.headlineMedium,
+            )
             Text(
                 state.description,
                 modifier = Modifier.padding(top = 8.dp),
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                stringResource(
-                    R.string.path_progress,
-                    state.completedSteps,
-                    state.totalSteps,
-                ),
+                progressDescription,
                 modifier = Modifier.padding(top = 16.dp),
                 style = MaterialTheme.typography.labelLarge,
             )
@@ -158,7 +173,8 @@ private fun PathContent(
                 progress = { state.progressFraction.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp),
+                    .padding(top = 8.dp, bottom = 4.dp)
+                    .semantics { stateDescription = progressDescription },
             )
         }
         items(

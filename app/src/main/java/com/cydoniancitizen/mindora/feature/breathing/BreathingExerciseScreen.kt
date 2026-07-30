@@ -33,8 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -111,51 +114,56 @@ internal fun BreathingExerciseScreen(
                 uiState !is BreathingExerciseUiState.SaveFailed,
             onBack = onBack,
         )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        ) {
+            when (uiState) {
+                BreathingExerciseUiState.LoadingContent -> LinkedContentLoading()
+                BreathingExerciseUiState.Unavailable -> LinkedContentUnavailable(onBack)
+                is BreathingExerciseUiState.Setup -> SetupContent(
+                    state = uiState,
+                    onStart = onStart,
+                )
 
-        when (uiState) {
-            BreathingExerciseUiState.LoadingContent -> LinkedContentLoading()
-            BreathingExerciseUiState.Unavailable -> LinkedContentUnavailable(onBack)
-            is BreathingExerciseUiState.Setup -> SetupContent(
-                state = uiState,
-                onStart = onStart,
-            )
+                is BreathingExerciseUiState.Running -> SessionContent(
+                    phase = uiState.currentPhase,
+                    cycle = uiState.currentCycle,
+                    totalCycles = uiState.totalCycles,
+                    phaseRemainingDuration = uiState.phaseRemainingDuration,
+                    totalRemainingDuration = uiState.totalRemainingDuration,
+                    phaseProgress = uiState.phaseProgress,
+                    status = stringResource(R.string.running),
+                    primaryActionLabel = stringResource(R.string.pause),
+                    onPrimaryAction = onPause,
+                    onRequestEnd = onRequestEnd,
+                )
 
-            is BreathingExerciseUiState.Running -> SessionContent(
-                phase = uiState.currentPhase,
-                cycle = uiState.currentCycle,
-                totalCycles = uiState.totalCycles,
-                phaseRemainingDuration = uiState.phaseRemainingDuration,
-                totalRemainingDuration = uiState.totalRemainingDuration,
-                phaseProgress = uiState.phaseProgress,
-                status = stringResource(R.string.running),
-                primaryActionLabel = stringResource(R.string.pause),
-                onPrimaryAction = onPause,
-                onRequestEnd = onRequestEnd,
-            )
+                is BreathingExerciseUiState.Paused -> SessionContent(
+                    phase = uiState.currentPhase,
+                    cycle = uiState.currentCycle,
+                    totalCycles = uiState.totalCycles,
+                    phaseRemainingDuration = uiState.phaseRemainingDuration,
+                    totalRemainingDuration = uiState.totalRemainingDuration,
+                    phaseProgress = uiState.phaseProgress,
+                    status = stringResource(R.string.paused),
+                    primaryActionLabel = stringResource(R.string.resume),
+                    onPrimaryAction = onResume,
+                    onRequestEnd = onRequestEnd,
+                )
 
-            is BreathingExerciseUiState.Paused -> SessionContent(
-                phase = uiState.currentPhase,
-                cycle = uiState.currentCycle,
-                totalCycles = uiState.totalCycles,
-                phaseRemainingDuration = uiState.phaseRemainingDuration,
-                totalRemainingDuration = uiState.totalRemainingDuration,
-                phaseProgress = uiState.phaseProgress,
-                status = stringResource(R.string.paused),
-                primaryActionLabel = stringResource(R.string.resume),
-                onPrimaryAction = onResume,
-                onRequestEnd = onRequestEnd,
-            )
+                is BreathingExerciseUiState.Saving -> SavingContent()
+                is BreathingExerciseUiState.Finished -> FinishedContent(
+                    state = uiState,
+                    onDone = onDone,
+                )
 
-            is BreathingExerciseUiState.Saving -> SavingContent()
-            is BreathingExerciseUiState.Finished -> FinishedContent(
-                state = uiState,
-                onDone = onDone,
-            )
-
-            is BreathingExerciseUiState.SaveFailed -> SaveFailedContent(
-                onRetrySave = onRetrySave,
-                onDiscard = onDiscard,
-            )
+                is BreathingExerciseUiState.SaveFailed -> SaveFailedContent(
+                    onRetrySave = onRetrySave,
+                    onDiscard = onDiscard,
+                )
+            }
         }
     }
 
@@ -192,6 +200,7 @@ private fun BreathingHeader(
         }
         Text(
             text = stringResource(R.string.breathing_exercise),
+            modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.headlineSmall,
         )
     }
@@ -212,6 +221,7 @@ private fun SetupContent(
         val linkedContent = state.linkedContent
         Text(
             text = linkedContent?.title ?: stringResource(R.string.breathing_exercise),
+            modifier = Modifier.semantics { heading() },
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.headlineMedium,
         )
@@ -223,13 +233,18 @@ private fun SetupContent(
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(
-            text = stringResource(R.string.breathing_cycle_count, state.totalCycles),
+            text = pluralStringResource(
+                R.plurals.breathing_cycle_count,
+                state.totalCycles,
+                state.totalCycles,
+            ),
             modifier = Modifier.padding(top = 24.dp),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = stringResource(
-                R.string.breathing_approximate_duration,
+            text = pluralStringResource(
+                R.plurals.breathing_approximate_duration,
+                state.plannedDuration.seconds.toInt(),
                 state.plannedDuration.seconds,
             ),
             modifier = Modifier.padding(top = 8.dp),
@@ -250,6 +265,7 @@ private fun LinkedContentLoading() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -267,6 +283,7 @@ private fun LinkedContentUnavailable(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -310,6 +327,12 @@ private fun SessionContent(
         R.string.breathing_exercise_remaining,
         totalCountdown,
     )
+    val guideDescription = stringResource(
+        R.string.breathing_guide_accessibility,
+        phaseLabel,
+        cycleLabel,
+        phaseRemainingLabel,
+    )
 
     Column(
         modifier = Modifier
@@ -323,30 +346,32 @@ private fun SessionContent(
             text = status,
             style = MaterialTheme.typography.titleMedium,
         )
-        Text(
-            text = cycleLabel,
-            modifier = Modifier.padding(top = 8.dp),
-            style = MaterialTheme.typography.titleLarge,
-        )
-        BreathingGuide(
-            phase = phase,
-            phaseLabel = phaseLabel,
-            cycleLabel = cycleLabel,
-            phaseRemainingLabel = phaseRemainingLabel,
-            phaseProgress = phaseProgress,
-        )
-        Text(
-            text = phaseLabel,
-            modifier = Modifier.padding(top = 20.dp),
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Text(
-            text = phaseCountdown,
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .semantics { contentDescription = phaseRemainingLabel },
-            style = MaterialTheme.typography.displayMedium,
-        )
+        Column(
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = guideDescription
+            },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = cycleLabel,
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            BreathingGuide(
+                phase = phase,
+                phaseProgress = phaseProgress,
+            )
+            Text(
+                text = phaseLabel,
+                modifier = Modifier.padding(top = 20.dp),
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                text = phaseCountdown,
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.displayMedium,
+            )
+        }
         Text(
             text = totalRemainingLabel,
             modifier = Modifier.padding(top = 12.dp),
@@ -374,9 +399,6 @@ private fun SessionContent(
 @Composable
 private fun BreathingGuide(
     phase: BreathingPhase,
-    phaseLabel: String,
-    cycleLabel: String,
-    phaseRemainingLabel: String,
     phaseProgress: Float,
 ) {
     val context = LocalContext.current
@@ -397,13 +419,6 @@ private fun BreathingGuide(
             BreathingPhase.HOLD_AFTER_EXHALE -> 0f
         }
     }.coerceIn(0f, 1f)
-    val guideDescription = stringResource(
-        R.string.breathing_guide_accessibility,
-        phaseLabel,
-        cycleLabel,
-        phaseRemainingLabel,
-    )
-
     Box(
         modifier = Modifier
             .padding(top = 24.dp)
@@ -412,7 +427,7 @@ private fun BreathingGuide(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = CircleShape,
             )
-            .semantics { contentDescription = guideDescription },
+            .clearAndSetSemantics { },
     )
 }
 
@@ -421,6 +436,7 @@ private fun SavingContent() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -449,12 +465,14 @@ private fun FinishedContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = result,
+            modifier = Modifier.semantics { heading() },
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.headlineMedium,
         )
@@ -490,12 +508,14 @@ private fun SaveFailedContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = stringResource(R.string.session_save_failed),
+            modifier = Modifier.semantics { heading() },
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleLarge,
         )

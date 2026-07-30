@@ -3,7 +3,6 @@ package com.cydoniancitizen.mindora.feature.practice
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -53,52 +56,67 @@ internal fun PracticeScreen(
     onPathClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            text = stringResource(R.string.practice),
-            modifier = Modifier.padding(
-                start = 24.dp,
-                top = 24.dp,
-                end = 24.dp,
-                bottom = 16.dp,
-            ),
-            style = MaterialTheme.typography.headlineMedium,
-        )
-
-        PracticeStandaloneAction(
-            title = stringResource(R.string.free_meditation),
-            description = stringResource(R.string.free_meditation_description),
-            onClick = onFreeMeditationClick,
-        )
-        PracticeStandaloneAction(
-            title = stringResource(R.string.breathing_exercise),
-            description = stringResource(R.string.breathing_exercise_description),
-            onClick = onBreathingExerciseClick,
-            modifier = Modifier.padding(top = 12.dp),
-        )
-
-        Text(
-            text = stringResource(R.string.bundled_mindfulness_paths),
-            modifier = Modifier.padding(
-                start = 24.dp,
-                top = 24.dp,
-                end = 24.dp,
-                bottom = 12.dp,
-            ),
-            style = MaterialTheme.typography.titleMedium,
-        )
-
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Text(
+                text = stringResource(R.string.practice),
+                modifier = Modifier
+                    .padding(
+                        start = 24.dp,
+                        top = 24.dp,
+                        end = 24.dp,
+                        bottom = 4.dp,
+                    )
+                    .semantics { heading() },
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
+        item {
+            PracticeStandaloneAction(
+                title = stringResource(R.string.free_meditation),
+                description = stringResource(R.string.free_meditation_description),
+                onClick = onFreeMeditationClick,
+            )
+        }
+        item {
+            PracticeStandaloneAction(
+                title = stringResource(R.string.breathing_exercise),
+                description = stringResource(R.string.breathing_exercise_description),
+                onClick = onBreathingExerciseClick,
+            )
+        }
+        item {
+            Text(
+                text = stringResource(R.string.bundled_mindfulness_paths),
+                modifier = Modifier
+                    .padding(
+                        start = 24.dp,
+                        top = 12.dp,
+                        end = 24.dp,
+                    )
+                    .semantics { heading() },
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
         when (uiState) {
-            PracticeUiState.Loading -> PracticeLoading()
-            PracticeUiState.Empty -> PracticeMessage(
-                message = stringResource(R.string.practice_empty_message),
-            )
-
-            PracticeUiState.Error -> PracticeError(onRetry = onRetry)
-            is PracticeUiState.Content -> PracticePathList(
-                paths = uiState.paths,
-                onPathClick = onPathClick,
-            )
+            PracticeUiState.Loading -> item { PracticeLoading() }
+            PracticeUiState.Empty -> item {
+                PracticeMessage(message = stringResource(R.string.practice_empty_message))
+            }
+            PracticeUiState.Error -> item { PracticeError(onRetry = onRetry) }
+            is PracticeUiState.Content -> items(
+                items = uiState.paths,
+                key = MindfulnessPathSummary::id,
+            ) { path ->
+                PracticePathCard(
+                    path = path,
+                    onClick = { onPathClick(path.id) },
+                )
+            }
         }
     }
 }
@@ -131,11 +149,11 @@ private fun PracticeStandaloneAction(
 }
 
 @Composable
-private fun ColumnScope.PracticeLoading() {
+private fun PracticeLoading() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .weight(1f),
+            .padding(64.dp),
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator()
@@ -143,11 +161,10 @@ private fun ColumnScope.PracticeLoading() {
 }
 
 @Composable
-private fun ColumnScope.PracticeMessage(message: String) {
+private fun PracticeMessage(message: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .weight(1f)
             .padding(24.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -160,11 +177,10 @@ private fun ColumnScope.PracticeMessage(message: String) {
 }
 
 @Composable
-private fun ColumnScope.PracticeError(onRetry: () -> Unit) {
+private fun PracticeError(onRetry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .weight(1f)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -184,54 +200,44 @@ private fun ColumnScope.PracticeError(onRetry: () -> Unit) {
 }
 
 @Composable
-private fun ColumnScope.PracticePathList(
-    paths: List<MindfulnessPathSummary>,
-    onPathClick: (String) -> Unit,
+private fun PracticePathCard(
+    path: MindfulnessPathSummary,
+    onClick: () -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.weight(1f),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            bottom = 24.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    val progressDescription = pluralStringResource(
+        R.plurals.path_progress,
+        path.totalSteps,
+        path.completedSteps,
+        path.totalSteps,
+    )
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
     ) {
-        items(
-            items = paths,
-            key = MindfulnessPathSummary::id,
-        ) { path ->
-            Card(
-                onClick = { onPathClick(path.id) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = path.title,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = path.description,
-                        modifier = Modifier.padding(top = 8.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.path_progress,
-                            path.completedSteps,
-                            path.totalSteps,
-                        ),
-                        modifier = Modifier.padding(top = 8.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                    LinearProgressIndicator(
-                        progress = { path.progressFraction.coerceIn(0f, 1f) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                    )
-                }
-            }
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = path.title,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = path.description,
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = progressDescription,
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            LinearProgressIndicator(
+                progress = { path.progressFraction.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .semantics { stateDescription = progressDescription },
+            )
         }
     }
 }

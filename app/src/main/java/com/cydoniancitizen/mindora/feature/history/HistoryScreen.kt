@@ -21,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -47,12 +49,14 @@ internal fun HistoryScreen(
     Column(modifier = modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.history),
-            modifier = Modifier.padding(
-                start = 24.dp,
-                top = 24.dp,
-                end = 24.dp,
-                bottom = 16.dp,
-            ),
+            modifier = Modifier
+                .padding(
+                    start = 24.dp,
+                    top = 24.dp,
+                    end = 24.dp,
+                    bottom = 16.dp,
+                )
+                .semantics { heading() },
             style = MaterialTheme.typography.headlineMedium,
         )
 

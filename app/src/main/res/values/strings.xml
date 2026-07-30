@@ -4,14 +4,16 @@
     <string name="practice">Practice</string>
     <string name="history">History</string>
     <string name="settings">Settings</string>
-    <string name="navigate_to_destination">Navigate to %1$s</string>
     <string name="practice_empty_message">No mindfulness paths are included yet.</string>
     <string name="practice_error_message">Mindfulness paths couldn’t be loaded.</string>
     <string name="free_meditation">Free meditation</string>
     <string name="free_meditation_description">Meditate with a simple countdown timer.</string>
     <string name="bundled_mindfulness_paths">Mindfulness paths</string>
     <string name="mindfulness_path">Mindfulness path</string>
-    <string name="path_progress">%1$d of %2$d steps completed</string>
+    <plurals name="path_progress">
+        <item quantity="one">%1$d of %2$d step completed</item>
+        <item quantity="other">%1$d of %2$d steps completed</item>
+    </plurals>
     <string name="path_step_number">%1$d. %2$s</string>
     <string name="practice_duration">Duration: %1$s</string>
     <string name="completed">Completed</string>
@@ -25,8 +27,14 @@
     <string name="practice_step_unavailable">This practice is unavailable.</string>
     <string name="breathing_exercise">Breathing exercise</string>
     <string name="breathing_exercise_description">Follow the breathing rhythm for five cycles.</string>
-    <string name="breathing_cycle_count">%1$d cycles</string>
-    <string name="breathing_approximate_duration">About %1$d seconds</string>
+    <plurals name="breathing_cycle_count">
+        <item quantity="one">%1$d cycle</item>
+        <item quantity="other">%1$d cycles</item>
+    </plurals>
+    <plurals name="breathing_approximate_duration">
+        <item quantity="one">About %1$d second</item>
+        <item quantity="other">About %1$d seconds</item>
+    </plurals>
     <string name="breathing_cycle_format">Cycle %1$d of %2$d</string>
     <string name="breathing_phase_remaining">Phase remaining: %1$s</string>
     <string name="breathing_exercise_remaining">Exercise remaining: %1$s</string>
@@ -42,7 +50,10 @@
     <string name="breathing_guide_accessibility">%1$s, %2$s, %3$s</string>
     <string name="navigate_back">Navigate back</string>
     <string name="select_duration">Select a duration</string>
-    <string name="duration_minutes">%1$d minutes</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
     <string name="start">Start</string>
     <string name="pause">Pause</string>
     <string name="resume">Resume</string>
@@ -63,7 +74,7 @@
     <string name="end_session_message">Your active time will be saved as an interrupted session.</string>
     <string name="continue_session">Continue session</string>
     <string name="end_session">End session</string>
-    <string name="history_empty_message">Completed practice sessions will appear here.</string>
+    <string name="history_empty_message">Practice sessions will appear here.</string>
     <string name="history_error_message">Session history couldn’t be loaded.</string>
     <string name="session_type_guided_meditation">Guided meditation</string>
     <string name="session_type_free_meditation">Free meditation</string>
@@ -95,8 +106,14 @@
     <string name="no_weekly_goal_configured">No weekly goal is set.</string>
     <string name="set_a_goal">Set a goal</string>
     <string name="practiced_this_week">Practiced this week: %1$s</string>
-    <string name="weekly_progress_minutes">%1$d of %2$d minutes</string>
-    <string name="weekly_progress_less_than_minute">Less than 1 minute of %1$d minutes</string>
+    <plurals name="weekly_progress_minutes">
+        <item quantity="one">%1$d of %2$d minute</item>
+        <item quantity="other">%1$d of %2$d minutes</item>
+    </plurals>
+    <plurals name="weekly_progress_less_than_minute">
+        <item quantity="one">Less than 1 minute of %1$d minute</item>
+        <item quantity="other">Less than 1 minute of %1$d minutes</item>
+    </plurals>
     <string name="less_than_one_minute">Less than 1 minute</string>
     <string name="zero_minutes">0 minutes</string>
     <string name="weekly_goal_reached">Weekly goal reached</string>

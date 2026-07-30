@@ -10,7 +10,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.cydoniancitizen.mindora.R
 
 @Composable
 fun MindoraNavigationBar(navController: NavHostController) {
@@ -21,10 +20,6 @@ fun MindoraNavigationBar(navController: NavHostController) {
         MindoraDestination.entries.forEach { destination ->
             val selected = currentRoute == destination.route
             val label = stringResource(destination.labelResId)
-            val contentDescription = stringResource(
-                R.string.navigate_to_destination,
-                label,
-            )
 
             NavigationBarItem(
                 selected = selected,
@@ -40,7 +35,7 @@ fun MindoraNavigationBar(navController: NavHostController) {
                 icon = {
                     Icon(
                         imageVector = destination.icon,
-                        contentDescription = contentDescription,
+                        contentDescription = null,
                     )
                 },
                 label = {

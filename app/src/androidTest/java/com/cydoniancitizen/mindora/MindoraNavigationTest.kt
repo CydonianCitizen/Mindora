@@ -55,27 +55,15 @@ class MindoraNavigationTest {
     fun topLevelDestinationsNavigateWithoutDuplicatingActiveDestination() {
         composeRule.onAllNodesWithText("Home").assertCountEquals(2)
 
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Practice",
-            useUnmergedTree = true,
-        ).performClick()
+        composeRule.onNodeWithText("Practice").performClick()
         composeRule.onAllNodesWithText("Practice").assertCountEquals(2)
 
-        composeRule.onNodeWithContentDescription(
-            "Navigate to History",
-            useUnmergedTree = true,
-        ).performClick()
+        composeRule.onNodeWithText("History").performClick()
         composeRule.onAllNodesWithText("History").assertCountEquals(2)
 
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Settings",
-            useUnmergedTree = true,
-        ).performClick()
+        composeRule.onNodeWithText("Settings").performClick()
         composeRule.onAllNodesWithText("Settings").assertCountEquals(2)
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Settings",
-            useUnmergedTree = true,
-        ).performClick()
+        composeRule.onAllNodesWithText("Settings")[1].performClick()
 
         composeRule.activityRule.scenario.onActivity {
             it.onBackPressedDispatcher.onBackPressed()
@@ -88,58 +76,42 @@ class MindoraNavigationTest {
         composeRule.onNodeWithText("Set a goal").performClick()
 
         composeRule.onAllNodesWithText("Settings").assertCountEquals(2)
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Home",
-            useUnmergedTree = true,
-        ).assertIsDisplayed()
+        composeRule.onNodeWithText("Home").assertIsDisplayed()
     }
 
     @Test
     fun freeMeditationOpensFromPracticeAndHidesBottomNavigation() {
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Practice",
-            useUnmergedTree = true,
-        ).performClick()
+        composeRule.onNodeWithText("Practice").performClick()
         composeRule.onNodeWithText("Free meditation").assertIsDisplayed().performClick()
 
         composeRule.onNodeWithText("Select a duration").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Home",
-            useUnmergedTree = true,
-        ).assertDoesNotExist()
+        composeRule.onNodeWithText("Home").assertDoesNotExist()
         composeRule.onNodeWithText("10 minutes").assertIsSelected()
     }
 
     @Test
     fun breathingExerciseOpensFromPracticeAndHidesBottomNavigation() {
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Practice",
-            useUnmergedTree = true,
-        ).performClick()
+        composeRule.onNodeWithText("Practice").performClick()
         composeRule.onNodeWithText("Free meditation").assertIsDisplayed()
         composeRule.onNodeWithText("Breathing exercise").assertIsDisplayed().performClick()
 
         composeRule.onNodeWithText("Follow the breathing rhythm for five cycles.")
             .assertIsDisplayed()
         composeRule.onNodeWithText("5 cycles").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Home",
-            useUnmergedTree = true,
-        ).assertDoesNotExist()
+        composeRule.onNodeWithText("Home").assertDoesNotExist()
     }
 
     @Test
     fun breathingStartShowsPhaseAndBackRequestsConfirmation() {
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Practice",
-            useUnmergedTree = true,
-        ).performClick()
+        composeRule.onNodeWithText("Practice").performClick()
         composeRule.onNodeWithText("Breathing exercise").performClick()
         composeRule.onNodeWithText("Start").performClick()
 
         composeRule.onNodeWithText("Running").assertIsDisplayed()
-        composeRule.onNodeWithText("Inhale").assertIsDisplayed()
-        composeRule.onNodeWithText("Cycle 1 of 5").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Inhale", substring = true)
+            .assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Cycle 1 of 5", substring = true)
+            .assertIsDisplayed()
 
         composeRule.activityRule.scenario.onActivity {
             it.onBackPressedDispatcher.onBackPressed()
@@ -152,10 +124,7 @@ class MindoraNavigationTest {
 
     @Test
     fun startShowsActiveSessionAndBackRequestsConfirmation() {
-        composeRule.onNodeWithContentDescription(
-            "Navigate to Practice",
-            useUnmergedTree = true,
-        ).performClick()
+        composeRule.onNodeWithText("Practice").performClick()
         composeRule.onNodeWithText("Free meditation").performClick()
         composeRule.onNodeWithText("Start").performClick()
 
