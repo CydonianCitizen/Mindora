@@ -8,6 +8,10 @@ Core MVP engineering is implemented. Production catalogue is currently empty, so
 
 Mindora has no accounts, backend, analytics, telemetry, advertising, remote configuration, or application networking. Session history is stored in Room; small preferences are stored in DataStore. Static path content is read from bundled JSON assets. Guided audio, when approved, must be bundled with the application.
 
+## Branding
+
+`mindora_logo.svg` at the repository root is the approved first-party source logo. Android launcher resources are generated from this file.
+
 ## Build
 
 Requirements:
@@ -35,7 +39,7 @@ Single Android application module uses Jetpack Compose, Material 3, Navigation C
 - Active free-meditation and breathing sessions are not restored after process death.
 - Reminder delivery is inexact and may be deferred by Android power management.
 - Guided playback runtime testing requires approved bundled audio; none exists in production catalogue now.
-- Public release still requires approved branding, secure signing, store metadata, and hosted privacy-policy URL.
+- Public release still requires secure signing, store metadata, and a hosted privacy-policy URL.
 
 ## Contributing
 

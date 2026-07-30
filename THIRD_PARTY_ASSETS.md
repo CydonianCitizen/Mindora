@@ -2,7 +2,7 @@
 
 No approved production third-party meditation recording, music, nature sound, image, or other creative media is currently included. Production mindfulness catalogue is empty and contains no guided-audio reference.
 
-Current launcher icon is Android Studio template placeholder, not approved Mindora branding. Replace only with project-approved artwork whose ownership or redistribution license is documented.
+`mindora_logo.svg` is project-provided first-party artwork, not a third-party asset. Android launcher resources are derived from this approved source.
 
 Each future third-party asset record must include:
 

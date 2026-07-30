@@ -11,6 +11,7 @@ Complete each item against intended release commit. Do not infer completion from
 - [ ] No test fixture, test audio, placeholder content, or unapproved media in production
 - [ ] Code and media licenses reviewed; asset records complete
 - [ ] Privacy behavior and hosted privacy-policy URL reviewed
+- [x] Approved Mindora launcher, round, Android 13 themed, and Android 12+ splash icons verified on a Pixel 7 API 33 emulator
 - [ ] Version code/name, application ID, app label, launcher icon, splash, and store metadata approved
 - [ ] Secure release signing configured outside repository
 - [ ] Minified/resource-shrunk APK and AAB build; R8 warnings and mapping handling reviewed
