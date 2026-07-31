@@ -32,9 +32,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -344,7 +348,10 @@ private fun SessionContent(
     ) {
         Text(
             text = status,
+            modifier = Modifier.testTag(BreathingTestTags.STATUS_TEXT),
             style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
         )
         Column(
             modifier = Modifier.clearAndSetSemantics {
@@ -354,8 +361,12 @@ private fun SessionContent(
         ) {
             Text(
                 text = cycleLabel,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .testTag(BreathingTestTags.CYCLE_TEXT),
                 style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
             )
             BreathingGuide(
                 phase = phase,
@@ -363,25 +374,38 @@ private fun SessionContent(
             )
             Text(
                 text = phaseLabel,
-                modifier = Modifier.padding(top = 20.dp),
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .testTag(BreathingTestTags.PHASE_TEXT),
                 style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
             )
             Text(
                 text = phaseCountdown,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .testTag(BreathingTestTags.COUNTDOWN_TEXT),
                 style = MaterialTheme.typography.displayMedium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
             )
         }
         Text(
             text = totalRemainingLabel,
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .testTag(BreathingTestTags.TOTAL_REMAINING_TEXT),
             style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
         )
         Button(
             onClick = onPrimaryAction,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 28.dp),
+                .padding(top = 28.dp)
+                .testTag(BreathingTestTags.PRIMARY_BUTTON),
         ) {
             Text(primaryActionLabel)
         }
@@ -389,17 +413,34 @@ private fun SessionContent(
             onClick = onRequestEnd,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp),
+                .padding(top = 12.dp)
+                .testTag(BreathingTestTags.END_BUTTON),
         ) {
             Text(stringResource(R.string.end))
         }
     }
 }
 
+internal object BreathingTestTags {
+    const val CONTAINER = "breathing_container"
+    const val CIRCLE = "breathing_circle"
+    const val STATUS_TEXT = "breathing_status_text"
+    const val CYCLE_TEXT = "breathing_cycle_text"
+    const val PHASE_TEXT = "breathing_phase_text"
+    const val COUNTDOWN_TEXT = "breathing_countdown_text"
+    const val TOTAL_REMAINING_TEXT = "breathing_total_remaining_text"
+    const val PRIMARY_BUTTON = "breathing_primary_button"
+    const val END_BUTTON = "breathing_end_button"
+}
+
+internal val VisualScaleSemanticsKey = SemanticsPropertyKey<Float>("VisualScale")
+internal var SemanticsPropertyReceiver.visualScale by VisualScaleSemanticsKey
+
 @Composable
 private fun BreathingGuide(
     phase: BreathingPhase,
     phaseProgress: Float,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val motionEnabled = remember(context) {
@@ -419,16 +460,35 @@ private fun BreathingGuide(
             BreathingPhase.HOLD_AFTER_EXHALE -> 0f
         }
     }.coerceIn(0f, 1f)
+
+    val maxCircleDp = 220.dp
+    val minCircleDp = 128.dp
+    val scale = (minCircleDp.value + (maxCircleDp.value - minCircleDp.value) * visualProgress) / maxCircleDp.value
+
     Box(
-        modifier = Modifier
+        modifier = modifier
             .padding(top = 24.dp)
-            .size((128f + 92f * visualProgress).dp)
-            .background(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = CircleShape,
-            )
-            .clearAndSetSemantics { },
-    )
+            .size(maxCircleDp)
+            .testTag(BreathingTestTags.CONTAINER),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .background(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = CircleShape,
+                )
+                .clearAndSetSemantics {
+                    visualScale = scale
+                }
+                .testTag(BreathingTestTags.CIRCLE),
+        )
+    }
 }
 
 @Composable

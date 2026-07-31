@@ -16,4 +16,27 @@
 keystore.properties
 signing.properties
 
+# AI tooling & workspace files
 AGENTS.md
+CLAUDE.md
+GEMINI.md
+CHAT.md
+PROMPTS.md
+.cursorrules
+.windsurfrules
+.gemini/
+.claude/
+.cursor/
+.cline/
+.roo/
+.ai/
+.copilot/
+.antigravity/
+
+# Temporary and scratch markdown files
+*.ai.md
+*.tmp.md
+*prompt*.md
+*notes*.md
+scratch*.md
+temp*.md
