@@ -1,7 +1,7 @@
 package com.cydoniancitizen.mindora
 
+import android.content.Intent
 import android.net.Uri
-
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -11,9 +11,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.cydoniancitizen.mindora.navigation.GuidedMeditationDestination
+import com.cydoniancitizen.mindora.core.reminder.ReminderNotificationPublisher
 import com.cydoniancitizen.mindora.navigation.BreathingExerciseDestination
 import com.cydoniancitizen.mindora.navigation.FreeMeditationDestination
+import com.cydoniancitizen.mindora.navigation.GuidedMeditationDestination
 import com.cydoniancitizen.mindora.navigation.PathDetailDestination
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -51,59 +52,89 @@ class MindoraNavigationTest {
             BreathingExerciseDestination.createLinkedRoute(id),
         )
     }
+
+    @Test
+    fun coldLaunchOpensPracticeAsStartDestination() {
+        composeRule.onAllNodesWithText("Practice").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Practice")[1].assertIsSelected()
+        composeRule.onNodeWithText("Home").assertDoesNotExist()
+        composeRule.onNodeWithText("Weekly goal").assertIsDisplayed()
+    }
+
+    @Test
+    fun reminderNotificationIntentNavigatesToPracticeFromWarmState() {
+        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.onNodeWithText("Practice goals").assertIsDisplayed()
+
+        composeRule.activityRule.scenario.onActivity { activity ->
+            activity.intentFlow.value = Intent(activity, MainActivity::class.java).apply {
+                action = ReminderNotificationPublisher.ACTION_REMINDER_NOTIFICATION
+            }
+        }
+
+        composeRule.onAllNodesWithText("Practice").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Practice")[1].assertIsSelected()
+        composeRule.onNodeWithText("Home").assertDoesNotExist()
+    }
+
     @Test
     fun topLevelDestinationsNavigateWithoutDuplicatingActiveDestination() {
-        composeRule.onAllNodesWithText("Home").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Practice").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Practice")[1].assertIsSelected()
 
-        composeRule.onNodeWithText("Practice").performClick()
+        composeRule.onAllNodesWithText("Practice")[1].performClick()
         composeRule.onAllNodesWithText("Practice").assertCountEquals(2)
 
         composeRule.onNodeWithText("History").performClick()
         composeRule.onAllNodesWithText("History").assertCountEquals(2)
+        composeRule.onAllNodesWithText("History")[1].assertIsSelected()
+
+        composeRule.onNodeWithText("Practice").performClick()
+        composeRule.onAllNodesWithText("Practice").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Practice")[1].assertIsSelected()
 
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.onAllNodesWithText("Settings").assertCountEquals(2)
-        composeRule.onAllNodesWithText("Settings")[1].performClick()
+        composeRule.onAllNodesWithText("Settings")[1].assertIsSelected()
+        composeRule.onNodeWithText("Practice goals").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Practice").performClick()
+        composeRule.onAllNodesWithText("Practice").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Practice")[1].assertIsSelected()
 
         composeRule.activityRule.scenario.onActivity {
             it.onBackPressedDispatcher.onBackPressed()
         }
-        composeRule.onAllNodesWithText("Home").assertCountEquals(2)
+        composeRule.onNodeWithText("Home").assertDoesNotExist()
     }
 
     @Test
-    fun setGoalActionOpensSettingsAndKeepsBottomNavigation() {
-        composeRule.onNodeWithText("Set a goal").performClick()
-
-        composeRule.onAllNodesWithText("Settings").assertCountEquals(2)
-        composeRule.onNodeWithText("Home").assertIsDisplayed()
-    }
-
-    @Test
-    fun freeMeditationOpensFromPracticeAndHidesBottomNavigation() {
-        composeRule.onNodeWithText("Practice").performClick()
+    fun freeMeditationOpensFromPracticeAndBackReturnsToPractice() {
         composeRule.onNodeWithText("Free meditation").assertIsDisplayed().performClick()
 
-        composeRule.onNodeWithText("Select a duration").assertIsDisplayed()
-        composeRule.onNodeWithText("Home").assertDoesNotExist()
+        composeRule.onNodeWithText("Duration").assertIsDisplayed()
+        composeRule.onNodeWithText("Practice").assertDoesNotExist()
         composeRule.onNodeWithText("10 minutes").assertIsSelected()
+
+        composeRule.activityRule.scenario.onActivity {
+            it.onBackPressedDispatcher.onBackPressed()
+        }
+        composeRule.onAllNodesWithText("Practice").assertCountEquals(2)
     }
 
     @Test
     fun breathingExerciseOpensFromPracticeAndHidesBottomNavigation() {
-        composeRule.onNodeWithText("Practice").performClick()
         composeRule.onNodeWithText("Free meditation").assertIsDisplayed()
         composeRule.onNodeWithText("Breathing exercise").assertIsDisplayed().performClick()
 
         composeRule.onNodeWithText("Follow the breathing rhythm for five cycles.")
             .assertIsDisplayed()
         composeRule.onNodeWithText("5 cycles").assertIsDisplayed()
-        composeRule.onNodeWithText("Home").assertDoesNotExist()
+        composeRule.onNodeWithText("Practice").assertDoesNotExist()
     }
 
     @Test
     fun breathingStartShowsPhaseAndBackRequestsConfirmation() {
-        composeRule.onNodeWithText("Practice").performClick()
         composeRule.onNodeWithText("Breathing exercise").performClick()
         composeRule.onNodeWithText("Start").performClick()
 
@@ -124,9 +155,8 @@ class MindoraNavigationTest {
 
     @Test
     fun startShowsActiveSessionAndBackRequestsConfirmation() {
-        composeRule.onNodeWithText("Practice").performClick()
         composeRule.onNodeWithText("Free meditation").performClick()
-        composeRule.onNodeWithText("Start").performClick()
+        composeRule.onNodeWithText("Start session").performClick()
 
         composeRule.onNodeWithText("Running").assertIsDisplayed()
         composeRule.onNodeWithText("Pause").assertIsDisplayed()

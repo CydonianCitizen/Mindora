@@ -43,9 +43,10 @@ class LinkedPracticeRuntimeScreenTest {
 
         composeRule.onNodeWithText("Linked free").assertIsDisplayed()
         composeRule.onNodeWithText("Linked free description.").assertIsDisplayed()
-        composeRule.onNodeWithText("Duration: 02:00").assertIsDisplayed()
+        composeRule.onNodeWithText("02:00").assertIsDisplayed()
+        composeRule.onNodeWithText("Duration").assertIsDisplayed()
         composeRule.onNodeWithText("5 minutes").assertDoesNotExist()
-        composeRule.onNodeWithText("Start").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Start session").performScrollTo().assertIsDisplayed()
     }
 
     @Test

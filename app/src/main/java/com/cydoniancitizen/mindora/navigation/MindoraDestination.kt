@@ -4,7 +4,6 @@ import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -15,11 +14,6 @@ enum class MindoraDestination(
     @param:StringRes val labelResId: Int,
     val icon: ImageVector,
 ) {
-    HOME(
-        route = "home",
-        labelResId = R.string.home,
-        icon = Icons.Filled.Home,
-    ),
     PRACTICE(
         route = "practice",
         labelResId = R.string.practice,

@@ -2,14 +2,21 @@ package com.cydoniancitizen.mindora.feature.practice
 
 import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
 import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
+import com.cydoniancitizen.mindora.core.preferences.MindoraPreferencesRepository
+import com.cydoniancitizen.mindora.core.preferences.model.MindoraPreferences
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
+import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.testsupport.TestMindfulnessCatalogue
 import com.cydoniancitizen.mindora.testsupport.testSession
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalTime
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -41,7 +48,29 @@ class PracticeViewModelTest {
         sessions.emit(emptyList())
         runCurrent()
 
-        assertSame(PracticeUiState.Empty, viewModel.uiState.value)
+        assertEquals(PracticeUiState.Empty(), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `empty catalogue preserves weekly goal data`() = runTest {
+        val sessions = MutableSharedFlow<List<MindfulnessSession>>()
+        val viewModel = PracticeViewModel(
+            contentRepository = FakeContentRepository { emptyList() },
+            sessionRepository = FakeSessionRepository(sessions),
+            preferencesRepository = FakePreferencesRepository(
+                MindoraPreferences(weeklyGoalMinutes = 30),
+            ),
+            timeSource = FixedTimeSource,
+        )
+        runCurrent()
+
+        sessions.emit(listOf(testSession("completed")))
+        runCurrent()
+
+        val weeklyGoal = (viewModel.uiState.value as PracticeUiState.Empty).weeklyGoal
+        assertEquals(Duration.ofSeconds(30), weeklyGoal.practicedDuration)
+        assertEquals(30, weeklyGoal.targetMinutes)
+        assertEquals(1f / 60f, weeklyGoal.progressFraction)
     }
 
     @Test
@@ -101,12 +130,14 @@ class PracticeViewModelTest {
         assertSame(PracticeUiState.Error, catalogueFailure.uiState.value)
 
         val sessionFailure = PracticeViewModel(
-            FakeContentRepository { TestMindfulnessCatalogue.paths },
-            FakeSessionRepository(
+            contentRepository = FakeContentRepository { TestMindfulnessCatalogue.paths },
+            sessionRepository = FakeSessionRepository(
                 flow {
                     error("sessions")
                 },
             ),
+            preferencesRepository = FakePreferencesRepository(MindoraPreferences()),
+            timeSource = FixedTimeSource,
         )
         advanceUntilIdle()
         assertSame(PracticeUiState.Error, sessionFailure.uiState.value)
@@ -135,8 +166,10 @@ class PracticeViewModelTest {
         sessions: Flow<List<MindfulnessSession>> = MutableSharedFlow(),
         contentRepository: FakeContentRepository = FakeContentRepository { paths },
     ) = PracticeViewModel(
-        contentRepository,
-        FakeSessionRepository(sessions),
+        contentRepository = contentRepository,
+        sessionRepository = FakeSessionRepository(sessions),
+        preferencesRepository = FakePreferencesRepository(MindoraPreferences()),
+        timeSource = FixedTimeSource,
     )
 
     private class FakeContentRepository(
@@ -156,5 +189,29 @@ class PracticeViewModelTest {
     ) : MindfulnessSessionRepository {
         override fun observeSessions(): Flow<List<MindfulnessSession>> = sessions
         override suspend fun addSession(session: MindfulnessSession) = Unit
+    }
+
+    private class FakePreferencesRepository(
+        initialValue: MindoraPreferences,
+    ) : MindoraPreferencesRepository {
+        private val state = MutableStateFlow(initialValue)
+        override val preferences: Flow<MindoraPreferences> = state
+
+        override suspend fun setWeeklyGoalMinutes(minutes: Int?) {
+            state.value = state.value.copy(weeklyGoalMinutes = minutes)
+        }
+
+        override suspend fun setDailyReminderEnabled(enabled: Boolean) {
+            state.value = state.value.copy(dailyReminderEnabled = enabled)
+        }
+
+        override suspend fun setDailyReminderTime(time: LocalTime) {
+            state.value = state.value.copy(dailyReminderTime = time)
+        }
+    }
+
+    private object FixedTimeSource : SessionTimeSource {
+        override fun nowInstant(): Instant = Instant.parse("2026-07-30T12:00:00Z")
+        override fun elapsedRealtimeMillis(): Long = 0L
     }
 }

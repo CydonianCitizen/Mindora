@@ -5,7 +5,7 @@ import java.time.Duration
 import java.time.Instant
 
 internal object FreeMeditationDurations {
-    val options: List<Duration> = listOf(5L, 10L, 15L, 20L).map(Duration::ofMinutes)
+    val options: List<Duration> = listOf(5L, 10L, 15L, 20L, 30L).map(Duration::ofMinutes)
     val default: Duration = Duration.ofMinutes(10)
 }
 

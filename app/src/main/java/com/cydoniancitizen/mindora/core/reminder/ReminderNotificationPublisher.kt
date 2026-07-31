@@ -32,10 +32,14 @@ class ReminderNotificationPublisher @Inject constructor(
     }
 
     internal fun buildNotification(): android.app.Notification {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            action = ACTION_REMINDER_NOTIFICATION
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
         val contentIntent = PendingIntent.getActivity(
             context,
             CONTENT_REQUEST_CODE,
-            Intent(context, MainActivity::class.java),
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -60,6 +64,7 @@ class ReminderNotificationPublisher @Inject constructor(
     }
 
     companion object {
+        const val ACTION_REMINDER_NOTIFICATION = "com.cydoniancitizen.mindora.ACTION_REMINDER_NOTIFICATION"
         const val CHANNEL_ID = "mindfulness_reminders"
         const val NOTIFICATION_ID = 810
         private const val CONTENT_REQUEST_CODE = 811

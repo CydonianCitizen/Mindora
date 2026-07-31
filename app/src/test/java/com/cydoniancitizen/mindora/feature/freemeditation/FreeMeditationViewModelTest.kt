@@ -37,7 +37,7 @@ class FreeMeditationViewModelTest {
 
         assertEquals(Duration.ofMinutes(10), setup.selectedDuration)
         assertEquals(
-            listOf(5L, 10L, 15L, 20L).map(Duration::ofMinutes),
+            listOf(5L, 10L, 15L, 20L, 30L).map(Duration::ofMinutes),
             setup.availableDurations,
         )
     }
@@ -46,7 +46,7 @@ class FreeMeditationViewModelTest {
     fun `each production duration can be selected`() {
         val viewModel = viewModel()
 
-        listOf(5L, 10L, 15L, 20L).forEach { minutes ->
+        listOf(5L, 10L, 15L, 20L, 30L).forEach { minutes ->
             viewModel.selectDuration(Duration.ofMinutes(minutes))
             assertEquals(
                 Duration.ofMinutes(minutes),

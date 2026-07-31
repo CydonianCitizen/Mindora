@@ -10,7 +10,6 @@ import androidx.navigation.compose.composable
 import com.cydoniancitizen.mindora.feature.breathing.BreathingExerciseScreen
 import com.cydoniancitizen.mindora.feature.guidedmeditation.GuidedMeditationScreen
 import com.cydoniancitizen.mindora.feature.history.HistoryScreen
-import com.cydoniancitizen.mindora.feature.home.HomeScreen
 import com.cydoniancitizen.mindora.feature.freemeditation.FreeMeditationScreen
 import com.cydoniancitizen.mindora.feature.pathdetail.PathDetailScreen
 import com.cydoniancitizen.mindora.feature.pathdetail.PathStepType
@@ -24,18 +23,9 @@ fun MindoraNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = MindoraDestination.HOME.route,
+        startDestination = MindoraDestination.PRACTICE.route,
         modifier = modifier,
     ) {
-        composable(MindoraDestination.HOME.route) {
-            HomeScreen(
-                onOpenSettings = {
-                    navController.navigate(MindoraDestination.SETTINGS.route) {
-                        launchSingleTop = true
-                    }
-                },
-            )
-        }
         composable(MindoraDestination.PRACTICE.route) {
             PracticeScreen(
                 onFreeMeditationClick = {
@@ -111,7 +101,13 @@ fun MindoraNavHost(
             GuidedMeditationScreen(onNavigateBack = navController::navigateUp)
         }
         composable(MindoraDestination.HISTORY.route) {
-            HistoryScreen()
+            HistoryScreen(
+                onNavigateToPractice = {
+                    navController.navigate(MindoraDestination.PRACTICE.route) {
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable(MindoraDestination.SETTINGS.route) {
             SettingsScreen()

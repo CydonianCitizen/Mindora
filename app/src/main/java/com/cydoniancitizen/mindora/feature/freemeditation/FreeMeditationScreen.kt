@@ -1,24 +1,42 @@
 package com.cydoniancitizen.mindora.feature.freemeditation
 
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,13 +45,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -104,7 +130,12 @@ internal fun FreeMeditationScreen(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+    ) {
         FreeMeditationHeader(
             backEnabled = uiState !is FreeMeditationUiState.Saving &&
                 uiState !is FreeMeditationUiState.SaveFailed,
@@ -173,7 +204,8 @@ private fun FreeMeditationHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .height(56.dp)
+            .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
@@ -186,90 +218,249 @@ private fun FreeMeditationHeader(
             )
         }
         Text(
-            text = stringResource(R.string.free_meditation),
-            modifier = Modifier.semantics { heading() },
-            style = MaterialTheme.typography.headlineSmall,
+            text = stringResource(R.string.app_name),
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Spacer(modifier = Modifier.width(48.dp))
+    }
+}
+
+@Composable
+internal fun MeditationAmbientBackground(
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val animationsDisabled = remember(context) {
+        try {
+            val scale = Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f,
+            )
+            scale == 0f
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    val animatedScale = if (animationsDisabled) {
+        1f
+    } else {
+        val infiniteTransition = rememberInfiniteTransition(label = "ambient_breathing")
+        val scale by infiniteTransition.animateFloat(
+            initialValue = 0.94f,
+            targetValue = 1.06f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "ambient_scale",
+        )
+        scale
+    }
+
+    val primaryColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+    val tertiaryColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f)
+
+    Canvas(
+        modifier = modifier
+            .clearAndSetSemantics {}
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            },
+    ) {
+        val centerPoint = Offset(size.width / 2f, size.height / 2f)
+        val radius = size.minDimension / 1.8f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(primaryColor, tertiaryColor, Color.Transparent),
+                center = centerPoint,
+                radius = radius,
+            ),
+            center = centerPoint,
+            radius = radius,
         )
     }
 }
 
+@Composable
+internal fun MeditationDurationDisplay(
+    duration: Duration,
+    modifier: Modifier = Modifier,
+) {
+    val countdown = formatCountdown(duration)
+    val minutes = duration.toMinutes().toInt()
+    val durationText = pluralStringResource(
+        R.plurals.duration_minutes,
+        minutes,
+        duration.toMinutes(),
+    )
+    val accessibleDescription = stringResource(
+        R.string.selected_duration_accessibility,
+        durationText,
+    )
+    Text(
+        text = countdown,
+        modifier = modifier.semantics {
+            contentDescription = accessibleDescription
+        },
+        style = MaterialTheme.typography.displayLarge.copy(
+            fontFeatureSettings = "tnum",
+            fontWeight = FontWeight.Bold,
+        ),
+        textAlign = TextAlign.Center,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+@Composable
+internal fun DurationChip(
+    duration: Duration,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val minutes = duration.toMinutes().toInt()
+    val labelText = pluralStringResource(
+        R.plurals.duration_minutes,
+        minutes,
+        duration.toMinutes(),
+    )
+    FilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        label = {
+            Text(
+                text = labelText,
+                style = MaterialTheme.typography.labelLarge,
+            )
+        },
+        modifier = modifier.defaultMinSize(minHeight = 48.dp),
+        shape = CircleShape,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SetupContent(
     state: FreeMeditationUiState.Setup,
     onSelectDuration: (Duration) -> Unit,
     onStart: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
     ) {
-        val linkedContent = state.linkedContent
-        if (linkedContent == null) {
-            Text(
-                text = stringResource(R.string.select_duration),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { heading() },
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                state.availableDurations.forEach { duration ->
-                    FilterChip(
-                        selected = duration == state.selectedDuration,
-                        onClick = { onSelectDuration(duration) },
-                        label = {
-                            Text(
-                                pluralStringResource(
-                                    R.plurals.duration_minutes,
-                                    duration.toMinutes().toInt(),
-                                    duration.toMinutes(),
-                                ),
-                            )
-                        },
-                    )
-                }
-            }
-        } else {
-            Text(
-                text = linkedContent.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { heading() },
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            Text(
-                text = linkedContent.description,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = stringResource(
-                    R.string.practice_duration,
-                    formatCountdown(linkedContent.plannedDuration),
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
-        Spacer(modifier = Modifier.height(32.dp))
-        Button(
-            onClick = onStart,
-            modifier = Modifier.fillMaxWidth(),
+        MeditationAmbientBackground(
+            modifier = Modifier
+                .size(320.dp)
+                .align(Alignment.Center),
+        )
+
+        Column(
+            modifier = Modifier
+                .widthIn(max = 480.dp)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Text(stringResource(R.string.start))
+            val linkedContent = state.linkedContent
+            val titleText = linkedContent?.title ?: stringResource(R.string.free_meditation)
+
+            Text(
+                text = titleText,
+                modifier = Modifier
+                    .semantics { heading() }
+                    .padding(bottom = 8.dp),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            if (linkedContent != null) {
+                Text(
+                    text = linkedContent.description,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            MeditationDurationDisplay(
+                duration = state.selectedDuration,
+                modifier = Modifier.padding(vertical = 12.dp),
+            )
+
+            Text(
+                text = stringResource(R.string.duration),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 20.dp),
+            )
+
+            if (linkedContent == null) {
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    state.availableDurations.forEach { duration ->
+                        DurationChip(
+                            duration = duration,
+                            isSelected = duration == state.selectedDuration,
+                            onClick = { onSelectDuration(duration) },
+                        )
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            val durationMinutes = state.selectedDuration.toMinutes().toInt()
+            val formattedDurationText = pluralStringResource(
+                R.plurals.duration_minutes,
+                durationMinutes,
+                state.selectedDuration.toMinutes(),
+            )
+            val startAccessibilityText = stringResource(
+                R.string.start_session_accessibility,
+                formattedDurationText,
+            )
+
+            Button(
+                onClick = onStart,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .semantics { contentDescription = startAccessibilityText },
+                shape = CircleShape,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text(
+                    text = stringResource(R.string.start_session),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
         }
     }
 }
@@ -346,7 +537,9 @@ private fun SessionContent(
             modifier = Modifier
                 .padding(vertical = 32.dp)
                 .semantics { contentDescription = countdownDescription },
-            style = MaterialTheme.typography.displayLarge,
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontFeatureSettings = "tnum",
+            ),
         )
         Button(
             onClick = onPrimaryAction,
