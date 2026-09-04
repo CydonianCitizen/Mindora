@@ -1,10 +1,19 @@
 package com.cydoniancitizen.mindora.ui.theme
 
+import android.app.UiModeManager
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 
 private val lightScheme = lightColorScheme(
     primary = primaryLight,
@@ -234,13 +243,54 @@ private val highContrastDarkColorScheme = darkColorScheme(
     surfaceContainerHighest = surfaceContainerHighestDarkHighContrast,
 )
 
+/**
+ * Contrast levels reported by [UiModeManager.getContrast]. The system exposes three steps in
+ * Accessibility settings, so the two thresholds split the reported range into thirds.
+ */
+private const val MEDIUM_CONTRAST_THRESHOLD = 1f / 3f
+private const val HIGH_CONTRAST_THRESHOLD = 2f / 3f
+
+/**
+ * Reads the system contrast preference and keeps it current while the theme is composed.
+ *
+ * The preference exists from Android 14; on 33 there is nothing to read, so the standard schemes
+ * are used and no listener is registered.
+ */
+@Composable
+private fun rememberSystemContrast(): Float {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return 0f
+
+    val context = LocalContext.current
+    val uiModeManager = remember(context) { context.getSystemService(UiModeManager::class.java) }
+    var contrast by remember(uiModeManager) { mutableFloatStateOf(uiModeManager?.contrast ?: 0f) }
+
+    DisposableEffect(uiModeManager) {
+        if (uiModeManager == null) return@DisposableEffect onDispose { }
+        val listener = UiModeManager.ContrastChangeListener { contrast = it }
+        uiModeManager.addContrastChangeListener(context.mainExecutor, listener)
+        onDispose { uiModeManager.removeContrastChangeListener(listener) }
+    }
+
+    return contrast
+}
+
+internal fun mindoraColorScheme(darkTheme: Boolean, contrast: Float): ColorScheme = when {
+    contrast >= HIGH_CONTRAST_THRESHOLD ->
+        if (darkTheme) highContrastDarkColorScheme else highContrastLightColorScheme
+
+    contrast >= MEDIUM_CONTRAST_THRESHOLD ->
+        if (darkTheme) mediumContrastDarkColorScheme else mediumContrastLightColorScheme
+
+    else -> if (darkTheme) darkScheme else lightScheme
+}
+
 @Composable
 fun MindoraTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
-        colorScheme = if (darkTheme) darkScheme else lightScheme,
+        colorScheme = mindoraColorScheme(darkTheme, rememberSystemContrast()),
         typography = MindoraTypography,
         content = content,
     )

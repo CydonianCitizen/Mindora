@@ -1,5 +1,7 @@
 package com.cydoniancitizen.mindora.feature.settings
 
+import android.net.Uri
+import com.cydoniancitizen.mindora.core.export.MindoraDataExporter
 import com.cydoniancitizen.mindora.core.preferences.MindoraPreferencesRepository
 import com.cydoniancitizen.mindora.core.preferences.model.MindoraPreferences
 import com.cydoniancitizen.mindora.core.reminder.MindfulnessReminderScheduler
@@ -25,7 +27,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `initial state is loading then preferences produce content`() = runTest {
-        val viewModel = SettingsViewModel(FakePreferencesRepository(), FakeScheduler())
+        val viewModel = SettingsViewModel(FakePreferencesRepository(), FakeScheduler(), FakeDataExporter())
 
         assertSame(SettingsUiState.Loading, viewModel.uiState.value)
         advanceUntilIdle()
@@ -35,7 +37,7 @@ class SettingsViewModelTest {
     @Test
     fun `valid goal and off persist`() = runTest {
         val repository = FakePreferencesRepository()
-        val viewModel = SettingsViewModel(repository, FakeScheduler())
+        val viewModel = SettingsViewModel(repository, FakeScheduler(), FakeDataExporter())
         advanceUntilIdle()
 
         viewModel.setWeeklyGoal(60)
@@ -51,7 +53,7 @@ class SettingsViewModelTest {
     fun `permission-granted enable persists and schedules then disable cancels`() = runTest {
         val repository = FakePreferencesRepository()
         val scheduler = FakeScheduler()
-        val viewModel = SettingsViewModel(repository, scheduler)
+        val viewModel = SettingsViewModel(repository, scheduler, FakeDataExporter())
         advanceUntilIdle()
 
         viewModel.enableDailyReminder()
@@ -69,7 +71,7 @@ class SettingsViewModelTest {
     fun `time change persists and schedules only when enabled`() = runTest {
         val repository = FakePreferencesRepository()
         val scheduler = FakeScheduler()
-        val viewModel = SettingsViewModel(repository, scheduler)
+        val viewModel = SettingsViewModel(repository, scheduler, FakeDataExporter())
         advanceUntilIdle()
 
         viewModel.setDailyReminderTime(LocalTime.of(7, 15))
@@ -89,7 +91,7 @@ class SettingsViewModelTest {
     fun `scheduling failure does not report reminder enabled`() = runTest {
         val repository = FakePreferencesRepository()
         val scheduler = FakeScheduler(failSchedule = true)
-        val viewModel = SettingsViewModel(repository, scheduler)
+        val viewModel = SettingsViewModel(repository, scheduler, FakeDataExporter())
         advanceUntilIdle()
 
         viewModel.enableDailyReminder()
@@ -103,7 +105,7 @@ class SettingsViewModelTest {
     @Test
     fun `preference write failure produces recoverable error`() = runTest {
         val repository = FakePreferencesRepository(failWrites = true)
-        val viewModel = SettingsViewModel(repository, FakeScheduler())
+        val viewModel = SettingsViewModel(repository, FakeScheduler(), FakeDataExporter())
         advanceUntilIdle()
 
         viewModel.setWeeklyGoal(60)
@@ -120,7 +122,7 @@ class SettingsViewModelTest {
             override suspend fun setDailyReminderEnabled(enabled: Boolean) = Unit
             override suspend fun setDailyReminderTime(time: LocalTime) = Unit
         }
-        val viewModel = SettingsViewModel(failingRepository, FakeScheduler())
+        val viewModel = SettingsViewModel(failingRepository, FakeScheduler(), FakeDataExporter())
 
         advanceUntilIdle()
 
@@ -147,6 +149,18 @@ class SettingsViewModelTest {
         override suspend fun setDailyReminderTime(time: LocalTime) {
             check(!failWrites) { "write" }
             state.value = state.value.copy(dailyReminderTime = time)
+        }
+    }
+
+    /**
+     * Present so the view model can be built. Exporting itself is driven by a content Uri, which
+     * a JVM unit test cannot create, so the writing is covered by MindoraDataExportTest instead.
+     */
+    private class FakeDataExporter : MindoraDataExporter {
+        val destinations = mutableListOf<Uri>()
+
+        override suspend fun exportTo(destination: Uri) {
+            destinations += destination
         }
     }
 

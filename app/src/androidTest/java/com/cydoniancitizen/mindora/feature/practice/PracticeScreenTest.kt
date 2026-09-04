@@ -75,7 +75,7 @@ class PracticeScreenTest {
     }
 
     @Test
-    fun freeMeditationCardAndFabTriggerCallback() {
+    fun freeMeditationCardTriggersCallback() {
         var freeMeditationClickedCount = 0
         composeRule.setContent {
             MindoraTheme {
@@ -91,9 +91,6 @@ class PracticeScreenTest {
 
         composeRule.onNodeWithText("Free meditation").performClick()
         assertEquals(1, freeMeditationClickedCount)
-
-        composeRule.onNodeWithContentDescription("Free meditation").performClick()
-        assertEquals(2, freeMeditationClickedCount)
     }
 
     @Test

@@ -13,7 +13,10 @@ class ContentCatalogueParserTest {
         val resource = requireNotNull(
             javaClass.getResource("/valid_mindfulness_catalog.json"),
         )
-        resource.readText()
+        // Normalised because the tests below cut lines out of this text with "\n" literals, and a
+        // Windows checkout stores the fixture with CRLF endings, where those literals match
+        // nothing at all: the catalogue stays valid and the expected rejection never happens.
+        resource.readText().replace("\r\n", "\n")
     }
 
     @Test

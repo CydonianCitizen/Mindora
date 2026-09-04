@@ -30,18 +30,24 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -59,6 +65,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
@@ -73,6 +80,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.BuildConfig
 import com.cydoniancitizen.mindora.R
+import com.cydoniancitizen.mindora.core.export.defaultExportFileName
 import com.cydoniancitizen.mindora.core.preferences.model.supportedWeeklyGoalMinutes
 import com.cydoniancitizen.mindora.core.reminder.notificationsAllowed
 import java.time.LocalTime
@@ -84,6 +92,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var systemNotificationsAllowed by remember { mutableStateOf(notificationsAllowed(context)) }
+    var language by remember { mutableStateOf(currentAppLanguage(context)) }
     var permissionDenied by rememberSaveable { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -102,11 +111,17 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             if (event == Lifecycle.Event.ON_RESUME) {
                 systemNotificationsAllowed = notificationsAllowed(context)
                 if (systemNotificationsAllowed) permissionDenied = false
+                // Both can be changed from system settings while the app is in the background.
+                language = currentAppLanguage(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(EXPORT_MIME_TYPE),
+    ) { destination -> destination?.let(viewModel::exportData) }
 
     SettingsScreen(
         uiState = uiState,
@@ -130,8 +145,17 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         onReminderTimeSelected = viewModel::setDailyReminderTime,
         onOpenNotificationSettings = { openNotificationSettings(context) },
         onDismissError = viewModel::clearOperationError,
+        language = language,
+        onLanguageSelected = { chosen ->
+            language = chosen
+            setAppLanguage(context, chosen)
+        },
+        onExportClick = { exportLauncher.launch(defaultExportFileName()) },
+        onDismissExportStatus = viewModel::clearExportStatus,
     )
 }
+
+private const val EXPORT_MIME_TYPE = "application/json"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,6 +169,10 @@ internal fun SettingsScreen(
     onOpenNotificationSettings: () -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
+    language: AppLanguage = AppLanguage.SYSTEM,
+    onLanguageSelected: (AppLanguage) -> Unit = {},
+    onExportClick: () -> Unit = {},
+    onDismissExportStatus: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
@@ -182,6 +210,10 @@ internal fun SettingsScreen(
                 onReminderTimeSelected = onReminderTimeSelected,
                 onOpenNotificationSettings = onOpenNotificationSettings,
                 onDismissError = onDismissError,
+                language = language,
+                onLanguageSelected = onLanguageSelected,
+                onExportClick = onExportClick,
+                onDismissExportStatus = onDismissExportStatus,
             )
         }
     }
@@ -197,6 +229,10 @@ private fun SettingsBody(
     onReminderTimeSelected: (LocalTime) -> Unit,
     onOpenNotificationSettings: () -> Unit,
     onDismissError: () -> Unit,
+    language: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+    onExportClick: () -> Unit,
+    onDismissExportStatus: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
@@ -273,6 +309,29 @@ private fun SettingsBody(
                             text = stringResource(R.string.settings_save_error),
                             actionLabel = stringResource(R.string.dismiss),
                             onAction = onDismissError,
+                        )
+                    }
+                }
+                item {
+                    SettingsSection(
+                        title = stringResource(R.string.settings_language_section),
+                        icon = ImageVector.vectorResource(R.drawable.ic_language),
+                    ) {
+                        LanguageSetting(
+                            selected = language,
+                            onSelect = onLanguageSelected,
+                        )
+                    }
+                }
+                item {
+                    SettingsSection(
+                        title = stringResource(R.string.settings_data_section),
+                        icon = ImageVector.vectorResource(R.drawable.ic_export),
+                    ) {
+                        DataExportSetting(
+                            status = uiState.exportStatus,
+                            onExportClick = onExportClick,
+                            onDismissStatus = onDismissExportStatus,
                         )
                     }
                 }
@@ -608,6 +667,97 @@ private fun NotificationPermissionMessage(
             modifier = Modifier.padding(top = 4.dp),
         ) {
             Text(text = stringResource(R.string.open_notification_settings))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun LanguageSetting(
+    selected: AppLanguage,
+    onSelect: (AppLanguage) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        // Read-only and not editable: the field shows the choice and opens the list, it is not a
+        // place to type. No label either — the section heading directly above already says
+        // Language, and repeating it inside the field would announce it twice.
+        TextField(
+            value = stringResource(selected.labelResId),
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.textFieldColors(),
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            AppLanguage.entries.forEach { language ->
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(language.labelResId)) },
+                    onClick = {
+                        expanded = false
+                        onSelect(language)
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun DataExportSetting(
+    status: DataExportStatus,
+    onExportClick: () -> Unit,
+    onDismissStatus: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.export_data_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Button(
+            onClick = onExportClick,
+            enabled = status != DataExportStatus.RUNNING,
+            modifier = Modifier.padding(top = 16.dp),
+        ) {
+            Text(text = stringResource(R.string.export_data))
+        }
+
+        val message = when (status) {
+            DataExportStatus.IDLE -> null
+            DataExportStatus.RUNNING -> stringResource(R.string.export_data_running)
+            DataExportStatus.DONE -> stringResource(R.string.export_data_done)
+            DataExportStatus.FAILED -> stringResource(R.string.export_data_failed)
+        }
+        if (message != null) {
+            Text(
+                text = message,
+                modifier = Modifier.padding(top = 12.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (status == DataExportStatus.FAILED) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            if (status != DataExportStatus.RUNNING) {
+                TextButton(onClick = onDismissStatus) {
+                    Text(text = stringResource(R.string.dismiss))
+                }
+            }
         }
     }
 }

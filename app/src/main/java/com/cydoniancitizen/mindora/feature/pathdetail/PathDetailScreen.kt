@@ -9,20 +9,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,8 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.R
-import java.time.Duration
-import java.util.Locale
+import com.cydoniancitizen.mindora.core.format.formatElapsed
+import com.cydoniancitizen.mindora.ui.MindoraTopAppBar
 
 @Composable
 fun PathDetailScreen(
@@ -64,21 +59,9 @@ internal fun PathDetailScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.mindfulness_path),
-                        modifier = Modifier.semantics { heading() },
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.navigate_back),
-                        )
-                    }
-                },
+            MindoraTopAppBar(
+                title = stringResource(R.string.mindfulness_path),
+                onBack = onNavigateBack,
             )
         },
     ) { innerPadding ->
@@ -225,7 +208,7 @@ private fun PathStepCard(
             Text(
                 stringResource(
                     R.string.practice_duration,
-                    formatPathStepDuration(step.displayDuration),
+                    formatElapsed(step.displayDuration),
                 ),
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodyMedium,
@@ -245,9 +228,3 @@ private fun PathStepCard(
     }
 }
 
-internal fun formatPathStepDuration(duration: Duration): String {
-    val totalSeconds = duration.seconds.coerceAtLeast(0)
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format(Locale.ROOT, "%02d:%02d", minutes, seconds)
-}

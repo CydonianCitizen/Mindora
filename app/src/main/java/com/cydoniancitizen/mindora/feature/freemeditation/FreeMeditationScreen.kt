@@ -1,65 +1,49 @@
 package com.cydoniancitizen.mindora.feature.freemeditation
 
-import android.provider.Settings
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -67,7 +51,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.R
+import com.cydoniancitizen.mindora.core.format.formatRemaining
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
+import com.cydoniancitizen.mindora.ui.BreathEasing
+import com.cydoniancitizen.mindora.ui.MindoraTopAppBar
+import com.cydoniancitizen.mindora.ui.endlessMotionAllowed
+import com.cydoniancitizen.mindora.ui.session.LinkedStepLoading
+import com.cydoniancitizen.mindora.ui.session.LinkedStepUnavailable
+import com.cydoniancitizen.mindora.ui.session.SessionSaveFailed
+import com.cydoniancitizen.mindora.ui.session.SessionSaving
+import com.cydoniancitizen.mindora.ui.session.SessionStateColumn
+import com.cydoniancitizen.mindora.ui.softGlow
+import com.cydoniancitizen.mindora.ui.systemAnimationsEnabled
+import com.cydoniancitizen.mindora.ui.theme.tabularNumerals
 import java.time.Duration
 
 @Composable
@@ -130,25 +126,36 @@ internal fun FreeMeditationScreen(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding(),
-    ) {
-        FreeMeditationHeader(
+    Column(modifier = modifier.fillMaxSize()) {
+        MindoraTopAppBar(
+            title = stringResource(R.string.app_name),
+            onBack = onBack,
             backEnabled = uiState !is FreeMeditationUiState.Saving &&
                 uiState !is FreeMeditationUiState.SaveFailed,
-            onBack = onBack,
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
         ) {
+            val ringBreathing = when (uiState) {
+                is FreeMeditationUiState.Setup -> false
+                is FreeMeditationUiState.Running -> true
+                is FreeMeditationUiState.Paused -> false
+                else -> null
+            }
+            if (ringBreathing != null) {
+                MeditationRing(
+                    breathing = ringBreathing,
+                    modifier = Modifier
+                        .size(RING_SIZE)
+                        .align(Alignment.Center),
+                )
+            }
+
             when (uiState) {
-                FreeMeditationUiState.LoadingContent -> LinkedContentLoading()
-                FreeMeditationUiState.Unavailable -> LinkedContentUnavailable(onBack)
+                FreeMeditationUiState.LoadingContent -> LinkedStepLoading()
+                FreeMeditationUiState.Unavailable -> LinkedStepUnavailable(onBack)
                 is FreeMeditationUiState.Setup -> SetupContent(
                     state = uiState,
                     onSelectDuration = onSelectDuration,
@@ -171,13 +178,13 @@ internal fun FreeMeditationScreen(
                     onRequestEnd = onRequestEnd,
                 )
 
-                is FreeMeditationUiState.Saving -> SavingContent()
+                is FreeMeditationUiState.Saving -> SessionSaving()
                 is FreeMeditationUiState.Finished -> FinishedContent(
                     state = uiState,
                     onDone = onDone,
                 )
 
-                is FreeMeditationUiState.SaveFailed -> SaveFailedContent(
+                is FreeMeditationUiState.SaveFailed -> SessionSaveFailed(
                     onRetrySave = onRetrySave,
                     onDiscard = onDiscard,
                 )
@@ -196,104 +203,81 @@ internal fun FreeMeditationScreen(
     }
 }
 
+/**
+ * The ring behind a free meditation: still while the duration is being chosen, breathing once the
+ * session runs.
+ *
+ * One instance serves every state, and stillness is exactly the value the pulse starts from, so
+ * nothing snaps when the session begins — the ring leaves rest at zero velocity and the eye cannot
+ * catch the frame where motion started.
+ */
 @Composable
-private fun FreeMeditationHeader(
-    backEnabled: Boolean,
-    onBack: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            onClick = onBack,
-            enabled = backEnabled,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.navigate_back),
-            )
-        }
-        Text(
-            text = stringResource(R.string.app_name),
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() },
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Spacer(modifier = Modifier.width(48.dp))
-    }
-}
-
-@Composable
-internal fun MeditationAmbientBackground(
+internal fun MeditationRing(
+    breathing: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val animationsDisabled = remember(context) {
-        try {
-            val scale = Settings.Global.getFloat(
-                context.contentResolver,
-                Settings.Global.ANIMATOR_DURATION_SCALE,
-                1f,
-            )
-            scale == 0f
-        } catch (_: Exception) {
-            false
+    val pulse = remember { Animatable(RING_REST) }
+    val animate = breathing && systemAnimationsEnabled()
+
+    LaunchedEffect(animate) {
+        if (!animate || !endlessMotionAllowed()) return@LaunchedEffect
+        // Cancelling this effect leaves the Animatable wherever it stands, so pausing freezes the
+        // ring mid-breath instead of snapping it back to rest.
+        while (true) {
+            pulse.animateTo(RING_SWELL, tween(RING_HALF_CYCLE_MILLIS, easing = BreathEasing))
+            pulse.animateTo(RING_REST, tween(RING_HALF_CYCLE_MILLIS, easing = BreathEasing))
         }
     }
 
-    val animatedScale = if (animationsDisabled) {
-        1f
-    } else {
-        val infiniteTransition = rememberInfiniteTransition(label = "ambient_breathing")
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 0.94f,
-            targetValue = 1.06f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 4000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "ambient_scale",
+    val band = MaterialTheme.colorScheme.primaryContainer
+    val ring = remember(band) {
+        softGlow(
+            color = band,
+            0.00f to 0f,
+            0.42f to 0f,
+            0.60f to RING_ALPHA,
+            0.74f to RING_ALPHA,
+            0.92f to 0f,
+            1.00f to 0f,
         )
-        scale
     }
 
-    val primaryColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-    val tertiaryColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f)
-
-    Canvas(
+    Box(
         modifier = modifier
             .clearAndSetSemantics {}
             .graphicsLayer {
-                scaleX = animatedScale
-                scaleY = animatedScale
-            },
-    ) {
-        val centerPoint = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension / 1.8f
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(primaryColor, tertiaryColor, Color.Transparent),
-                center = centerPoint,
-                radius = radius,
-            ),
-            center = centerPoint,
-            radius = radius,
-        )
-    }
+                scaleX = pulse.value
+                scaleY = pulse.value
+            }
+            .background(ring),
+    )
 }
+
+internal val RING_SIZE = 320.dp
+
+/**
+ * Rest is exactly the size the still ring is drawn at, which is what makes the start invisible:
+ * the pulse has nowhere to jump from.
+ */
+private const val RING_REST = 1f
+
+/**
+ * A soft-edged ring hides small movement — at a tenth of its size the blurred edge shifts by a
+ * finger's width over five seconds and reads as static. Growing by a third is what makes the
+ * breath legible while staying slow enough to be calm.
+ */
+private const val RING_SWELL = 1.32f
+private const val RING_ALPHA = 0.5f
+
+/** Ten seconds a cycle: six breaths a minute, the pace coherent breathing settles at. */
+private const val RING_HALF_CYCLE_MILLIS = 5_000
 
 @Composable
 internal fun MeditationDurationDisplay(
     duration: Duration,
     modifier: Modifier = Modifier,
 ) {
-    val countdown = formatCountdown(duration)
+    val countdown = formatRemaining(duration)
     val minutes = duration.toMinutes().toInt()
     val durationText = pluralStringResource(
         R.plurals.duration_minutes,
@@ -309,10 +293,7 @@ internal fun MeditationDurationDisplay(
         modifier = modifier.semantics {
             contentDescription = accessibleDescription
         },
-        style = MaterialTheme.typography.displayLarge.copy(
-            fontFeatureSettings = "tnum",
-            fontWeight = FontWeight.Bold,
-        ),
+        style = MaterialTheme.typography.displayLarge.tabularNumerals(),
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurface,
     )
@@ -360,12 +341,6 @@ private fun SetupContent(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        MeditationAmbientBackground(
-            modifier = Modifier
-                .size(320.dp)
-                .align(Alignment.Center),
-        )
-
         Column(
             modifier = Modifier
                 .widthIn(max = 480.dp)
@@ -466,48 +441,6 @@ private fun SetupContent(
 }
 
 @Composable
-private fun LinkedContentLoading() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        CircularProgressIndicator()
-        Text(
-            stringResource(R.string.loading_practice_step),
-            modifier = Modifier.padding(top = 16.dp),
-        )
-    }
-}
-
-@Composable
-private fun LinkedContentUnavailable(onBack: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            stringResource(R.string.practice_step_unavailable),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier.padding(top = 20.dp),
-        ) {
-            Text(stringResource(R.string.back_to_path))
-        }
-    }
-}
-
-@Composable
 private fun SessionContent(
     remainingDuration: Duration,
     status: String,
@@ -515,19 +448,12 @@ private fun SessionContent(
     onPrimaryAction: () -> Unit,
     onRequestEnd: () -> Unit,
 ) {
-    val countdown = formatCountdown(remainingDuration)
+    val countdown = formatRemaining(remainingDuration)
     val countdownDescription = stringResource(
         R.string.countdown_accessibility,
         countdown,
     )
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
+    SessionStateColumn {
         Text(
             text = status,
             style = MaterialTheme.typography.titleLarge,
@@ -537,9 +463,7 @@ private fun SessionContent(
             modifier = Modifier
                 .padding(vertical = 32.dp)
                 .semantics { contentDescription = countdownDescription },
-            style = MaterialTheme.typography.displayLarge.copy(
-                fontFeatureSettings = "tnum",
-            ),
+            style = MaterialTheme.typography.displayLarge.tabularNumerals(),
         )
         Button(
             onClick = onPrimaryAction,
@@ -559,25 +483,6 @@ private fun SessionContent(
 }
 
 @Composable
-private fun SavingContent() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        CircularProgressIndicator()
-        Text(
-            text = stringResource(R.string.saving_session),
-            modifier = Modifier.padding(top = 16.dp),
-            style = MaterialTheme.typography.titleMedium,
-        )
-    }
-}
-
-@Composable
 private fun FinishedContent(
     state: FreeMeditationUiState.Finished,
     onDone: () -> Unit,
@@ -586,14 +491,7 @@ private fun FinishedContent(
         MindfulnessSessionStatus.COMPLETED -> stringResource(R.string.session_completed_result)
         MindfulnessSessionStatus.INTERRUPTED -> stringResource(R.string.session_interrupted_result)
     }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
+    SessionStateColumn {
         Text(
             text = result,
             modifier = Modifier.semantics { heading() },
@@ -603,7 +501,7 @@ private fun FinishedContent(
         Text(
             text = stringResource(
                 R.string.active_duration_summary,
-                formatCountdown(state.savedSession.activeDuration),
+                formatRemaining(state.savedSession.activeDuration),
             ),
             modifier = Modifier.padding(top = 12.dp),
             style = MaterialTheme.typography.bodyLarge,
@@ -620,50 +518,6 @@ private fun FinishedContent(
                 .padding(top = 32.dp),
         ) {
             Text(stringResource(R.string.done))
-        }
-    }
-}
-
-@Composable
-private fun SaveFailedContent(
-    onRetrySave: () -> Unit,
-    onDiscard: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = stringResource(R.string.session_save_failed),
-            modifier = Modifier.semantics { heading() },
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Text(
-            text = stringResource(R.string.session_discard_explanation),
-            modifier = Modifier.padding(top = 8.dp),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Button(
-            onClick = onRetrySave,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp),
-        ) {
-            Text(stringResource(R.string.retry))
-        }
-        OutlinedButton(
-            onClick = onDiscard,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text(stringResource(R.string.discard))
         }
     }
 }

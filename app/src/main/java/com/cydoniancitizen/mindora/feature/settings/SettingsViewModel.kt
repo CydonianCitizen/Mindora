@@ -1,7 +1,9 @@
 package com.cydoniancitizen.mindora.feature.settings
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cydoniancitizen.mindora.core.export.MindoraDataExporter
 import com.cydoniancitizen.mindora.core.preferences.MindoraPreferencesRepository
 import com.cydoniancitizen.mindora.core.preferences.model.MindoraPreferences
 import com.cydoniancitizen.mindora.core.reminder.MindfulnessReminderScheduler
@@ -21,14 +23,17 @@ import kotlinx.coroutines.launch
 class SettingsViewModel @Inject constructor(
     private val preferencesRepository: MindoraPreferencesRepository,
     private val reminderScheduler: MindfulnessReminderScheduler,
+    private val dataExporter: MindoraDataExporter,
 ) : ViewModel() {
     private val operationError = MutableStateFlow(false)
+    private val exportStatus = MutableStateFlow(DataExportStatus.IDLE)
 
     val uiState: StateFlow<SettingsUiState> = combine(
         preferencesRepository.preferences,
         operationError,
-    ) { preferences, hasOperationError ->
-        SettingsUiState.Content(preferences, hasOperationError) as SettingsUiState
+        exportStatus,
+    ) { preferences, hasOperationError, export ->
+        SettingsUiState.Content(preferences, hasOperationError, export) as SettingsUiState
     }.catch {
         emit(SettingsUiState.Error)
     }.stateIn(
@@ -102,6 +107,27 @@ class SettingsViewModel @Inject constructor(
 
     fun clearOperationError() {
         operationError.value = false
+    }
+
+    /**
+     * Writes the export to a destination the system's save dialog already returned, so by the time
+     * this runs the user has chosen where their data goes.
+     */
+    fun exportData(destination: Uri) {
+        viewModelScope.launch {
+            exportStatus.value = DataExportStatus.RUNNING
+            exportStatus.value = try {
+                dataExporter.exportTo(destination)
+                DataExportStatus.DONE
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                DataExportStatus.FAILED
+            }
+        }
+    }
+
+    fun clearExportStatus() {
+        exportStatus.value = DataExportStatus.IDLE
     }
 
     private fun currentPreferences(): MindoraPreferences? =

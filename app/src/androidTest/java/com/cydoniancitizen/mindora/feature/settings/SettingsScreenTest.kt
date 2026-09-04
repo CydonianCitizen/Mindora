@@ -11,13 +11,17 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.platform.app.InstrumentationRegistry
 import com.cydoniancitizen.mindora.BuildConfig
 import com.cydoniancitizen.mindora.core.preferences.model.MindoraPreferences
@@ -155,7 +159,11 @@ class SettingsScreenTest {
             MindoraTheme { SettingsScreenUnderTest(preferences = MindoraPreferences()) }
         }
 
-        composeRule.onNodeWithText(version).performScrollTo().assertIsDisplayed()
+        // About sits below the language and data sections now, and a lazy list does not compose
+        // what is far off screen, so the node has to be scrolled into existence before it exists
+        // to be found.
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(version))
+        composeRule.onNodeWithText(version).assertIsDisplayed()
         composeRule.onNodeWithText("Privacy first").assertIsDisplayed()
         composeRule.onNodeWithText("Preferred session length").assertDoesNotExist()
         composeRule.onNodeWithText("Reset all data").assertDoesNotExist()
@@ -175,11 +183,19 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Settings").assert(heading)
         composeRule.onNodeWithText("Practice goals").assert(heading)
         composeRule.onNodeWithText("Reminders").assert(heading)
-        composeRule.onNodeWithText("About").assert(heading)
         composeRule.onNodeWithContentDescription(
             "Decrease weekly goal, current value: 60 minutes",
         ).assertIsEnabled()
         composeRule.onNodeWithContentDescription("Daily reminder").assertIsOff()
+
+        // Asserted last, and after a scroll: reaching the sections at the bottom drops the ones at
+        // the top out of composition.
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Language"))
+        composeRule.onNodeWithText("Language").assert(heading)
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Your data"))
+        composeRule.onNodeWithText("Your data").assert(heading)
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("About"))
+        composeRule.onNodeWithText("About").assert(heading)
     }
 
     @Test
@@ -205,6 +221,8 @@ class SettingsScreenTest {
         notificationsAllowed: Boolean = true,
         onWeeklyGoalSelected: (Int?) -> Unit = {},
         onReminderToggle: (Boolean) -> Unit = {},
+        onExportClick: () -> Unit = {},
+        onLanguageSelected: (AppLanguage) -> Unit = {},
     ) {
         SettingsScreen(
             uiState = SettingsUiState.Content(preferences),
@@ -215,6 +233,8 @@ class SettingsScreenTest {
             onReminderTimeSelected = {},
             onOpenNotificationSettings = {},
             onDismissError = {},
+            onExportClick = onExportClick,
+            onLanguageSelected = onLanguageSelected,
         )
     }
 
@@ -225,5 +245,43 @@ class SettingsScreenTest {
             set(Calendar.MINUTE, time.minute)
         }
         return DateFormat.getTimeFormat(context).format(calendar.time)
+    }
+
+    @Test
+    fun languageSelectorShowsTheChoiceAndOpensTheOthers() {
+        var chosen: AppLanguage? = null
+        composeRule.setContent {
+            MindoraTheme {
+                SettingsScreenUnderTest(
+                    preferences = MindoraPreferences(),
+                    onLanguageSelected = { chosen = it },
+                )
+            }
+        }
+
+        // Collapsed, the box shows only the current choice; the others exist once it is opened.
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("System default"))
+        composeRule.onNodeWithText("English").assertDoesNotExist()
+        composeRule.onNodeWithText("System default").performClick()
+
+        composeRule.onNodeWithText("Italiano").assertIsDisplayed().performClick()
+        assertEquals(AppLanguage.ITALIAN, chosen)
+    }
+
+    @Test
+    fun exportSectionOffersTheActionAndReportsTheResult() {
+        var exportRequested = false
+        composeRule.setContent {
+            MindoraTheme {
+                SettingsScreenUnderTest(
+                    preferences = MindoraPreferences(),
+                    onExportClick = { exportRequested = true },
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Export data"))
+        composeRule.onNodeWithText("Export data").assertIsEnabled().performClick()
+        assertEquals(true, exportRequested)
     }
 }

@@ -48,9 +48,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -58,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.R
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
+import com.cydoniancitizen.mindora.ui.theme.tabularNumerals
 import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -203,8 +202,6 @@ private fun HistoryFilterBar(
                 HistoryFilter.FREE_MEDITATION -> stringResource(R.string.history_filter_free)
                 HistoryFilter.BREATHING_EXERCISE -> stringResource(R.string.history_filter_breathing)
             }
-            val stateDesc = if (isSelected) "Selected" else "Not selected"
-
             FilterChip(
                 selected = isSelected,
                 onClick = { onFilterSelected(filter) },
@@ -213,10 +210,6 @@ private fun HistoryFilterBar(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
-                modifier = Modifier.semantics {
-                    selected = isSelected
-                    stateDescription = stateDesc
-                },
             )
         }
     }
@@ -418,14 +411,16 @@ private fun HistorySessionRow(
         }
 
         Column(horizontalAlignment = Alignment.End) {
+            // Equal-width figures so the dates and times stay in a column down the list instead of
+            // going ragged wherever a 1 meets a 0.
             Text(
                 text = visibleDate,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall.tabularNumerals(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = visibleTime,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.tabularNumerals(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

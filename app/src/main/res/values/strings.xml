@@ -170,4 +170,14 @@
     <string name="history_session_accessibility_with_type">%1$s, %2$s, %3$s, %4$s at %5$s</string>
     <string name="history_session_accessibility_interrupted">%1$s, %2$s, %3$s at %4$s, interrupted</string>
     <string name="history_session_accessibility_with_type_interrupted">%1$s, %2$s, %3$s, %4$s at %5$s, interrupted</string>
+    <string name="settings_language_section">Language</string>
+    <string name="language_system">System default</string>
+    <string name="language_english">English</string>
+    <string name="language_italian">Italiano</string>
+    <string name="settings_data_section">Your data</string>
+    <string name="export_data">Export data</string>
+    <string name="export_data_description">Save your practice history and settings to a JSON file on this device.</string>
+    <string name="export_data_running">Exporting…</string>
+    <string name="export_data_done">Data exported.</string>
+    <string name="export_data_failed">The export couldn’t be saved.</string>
 </resources>

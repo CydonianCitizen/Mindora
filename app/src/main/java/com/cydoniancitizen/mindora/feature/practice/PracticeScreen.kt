@@ -25,7 +25,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +54,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.R
 import com.cydoniancitizen.mindora.feature.breathing.ProductionBreathingExerciseConfig
+import com.cydoniancitizen.mindora.navigation.ContainerKeys
+import com.cydoniancitizen.mindora.navigation.sharedContainer
 import java.time.Duration
 import java.time.LocalTime
 
@@ -87,7 +88,6 @@ internal fun PracticeScreen(
 ) {
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val isWideScreen = screenWidthDp >= 600
-    val freeMeditationLabel = stringResource(R.string.free_meditation)
     val breathingDurationSeconds = ProductionBreathingExerciseConfig.plannedDuration.seconds.toInt()
     val breathingDurationLabel = pluralStringResource(
         R.plurals.breathing_approximate_duration,
@@ -100,171 +100,160 @@ internal fun PracticeScreen(
         else -> true
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_mindfulness_reminder),
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.primary,
+    Column(modifier = modifier.fillMaxSize()) {
+        TopAppBar(
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_mindfulness_reminder),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 840.dp),
+                contentPadding = PaddingValues(
+                    start = 24.dp,
+                    end = 24.dp,
+                    top = 8.dp,
+                    bottom = 24.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item {
+                    val greetingRes = rememberGreetingStringRes()
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(greetingRes),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.titleLarge,
+                            text = stringResource(R.string.practice),
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .semantics { heading() },
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                item {
+                    if (isWideScreen) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            PracticeActionCard(
+                                title = stringResource(R.string.free_meditation),
+                                description = stringResource(R.string.free_meditation_description),
+                                icon = Icons.Filled.PlayArrow,
+                                onClick = onFreeMeditationClick,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .sharedContainer(ContainerKeys.FREE_MEDITATION),
+                            )
+                            PracticeActionCard(
+                                title = stringResource(R.string.breathing_exercise),
+                                description = stringResource(R.string.breathing_exercise_description),
+                                chipLabel = breathingDurationLabel,
+                                icon = Icons.Filled.Favorite,
+                                onClick = onBreathingExerciseClick,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .sharedContainer(ContainerKeys.BREATHING_EXERCISE),
+                            )
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            PracticeActionCard(
+                                title = stringResource(R.string.free_meditation),
+                                description = stringResource(R.string.free_meditation_description),
+                                icon = Icons.Filled.PlayArrow,
+                                onClick = onFreeMeditationClick,
+                                modifier = Modifier.sharedContainer(
+                                    ContainerKeys.FREE_MEDITATION,
+                                ),
+                            )
+                            PracticeActionCard(
+                                title = stringResource(R.string.breathing_exercise),
+                                description = stringResource(R.string.breathing_exercise_description),
+                                chipLabel = breathingDurationLabel,
+                                icon = Icons.Filled.Favorite,
+                                onClick = onBreathingExerciseClick,
+                                modifier = Modifier.sharedContainer(
+                                    ContainerKeys.BREATHING_EXERCISE,
+                                ),
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    WeeklyGoalCard(weeklyGoal = uiState.weeklyGoal)
+                }
+
+                if (showPathsSection) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.bundled_mindfulness_paths),
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .semantics { heading() },
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .widthIn(max = 840.dp),
-                    contentPadding = PaddingValues(
-                        start = 24.dp,
-                        end = 24.dp,
-                        top = 8.dp,
-                        bottom = 88.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    item {
-                        val greetingRes = rememberGreetingStringRes()
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = stringResource(greetingRes),
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = stringResource(R.string.practice),
-                                modifier = Modifier
-                                    .padding(top = 4.dp)
-                                    .semantics { heading() },
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    when (uiState) {
+                        PracticeUiState.Loading -> item { PracticeLoading() }
+                        PracticeUiState.Error -> item { PracticeError(onRetry = onRetry) }
+                        is PracticeUiState.Content -> items(
+                            items = uiState.paths,
+                            key = MindfulnessPathSummary::id,
+                        ) { path ->
+                            PracticePathCard(
+                                path = path,
+                                onClick = { onPathClick(path.id) },
                             )
                         }
-                    }
-
-                    item {
-                        if (isWideScreen) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(IntrinsicSize.Min),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            ) {
-                                PracticeActionCard(
-                                    title = stringResource(R.string.free_meditation),
-                                    description = stringResource(R.string.free_meditation_description),
-                                    icon = Icons.Filled.PlayArrow,
-                                    onClick = onFreeMeditationClick,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                )
-                                PracticeActionCard(
-                                    title = stringResource(R.string.breathing_exercise),
-                                    description = stringResource(R.string.breathing_exercise_description),
-                                    chipLabel = breathingDurationLabel,
-                                    icon = Icons.Filled.Favorite,
-                                    onClick = onBreathingExerciseClick,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                )
-                            }
-                        } else {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                PracticeActionCard(
-                                    title = stringResource(R.string.free_meditation),
-                                    description = stringResource(R.string.free_meditation_description),
-                                    icon = Icons.Filled.PlayArrow,
-                                    onClick = onFreeMeditationClick,
-                                )
-                                PracticeActionCard(
-                                    title = stringResource(R.string.breathing_exercise),
-                                    description = stringResource(R.string.breathing_exercise_description),
-                                    chipLabel = breathingDurationLabel,
-                                    icon = Icons.Filled.Favorite,
-                                    onClick = onBreathingExerciseClick,
-                                )
-                            }
-                        }
-                    }
-
-                    item {
-                        WeeklyGoalCard(weeklyGoal = uiState.weeklyGoal)
-                    }
-
-                    if (showPathsSection) {
-                        item {
-                            Text(
-                                text = stringResource(R.string.bundled_mindfulness_paths),
-                                modifier = Modifier
-                                    .padding(top = 8.dp)
-                                    .semantics { heading() },
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                        when (uiState) {
-                            PracticeUiState.Loading -> item { PracticeLoading() }
-                            PracticeUiState.Error -> item { PracticeError(onRetry = onRetry) }
-                            is PracticeUiState.Content -> items(
-                                items = uiState.paths,
-                                key = MindfulnessPathSummary::id,
-                            ) { path ->
-                                PracticePathCard(
-                                    path = path,
-                                    onClick = { onPathClick(path.id) },
-                                )
-                            }
-                            is PracticeUiState.Empty -> Unit
-                        }
+                        is PracticeUiState.Empty -> Unit
                     }
                 }
             }
         }
-
-        FloatingActionButton(
-            onClick = onFreeMeditationClick,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .semantics {
-                    contentDescription = freeMeditationLabel
-                },
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            shape = CircleShape,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.PlayArrow,
-                contentDescription = null,
-            )
-        }
     }
+
 }
 
 @Composable
@@ -312,34 +301,32 @@ fun PracticeActionCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (chipLabel != null) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                        ) {
-                            Text(
-                                text = chipLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // The chip sits under the text rather than beside the title: alongside it, a
+                // longer translation or a larger font scale wraps it into a two-line lump.
+                if (chipLabel != null) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
+                        Text(
+                            text = chipLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                        )
+                    }
+                }
             }
         }
     }

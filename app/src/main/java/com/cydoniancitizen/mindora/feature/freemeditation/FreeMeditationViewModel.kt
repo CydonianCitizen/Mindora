@@ -349,13 +349,3 @@ class FreeMeditationViewModel @Inject constructor(
     }
 }
 
-internal fun formatCountdown(duration: Duration): String {
-    val totalSeconds = if (duration.isZero || duration.isNegative) {
-        0
-    } else {
-        (duration.toMillis() + 999) / 1_000
-    }
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return "%02d:%02d".format(minutes, seconds)
-}

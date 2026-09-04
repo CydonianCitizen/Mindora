@@ -1,6 +1,7 @@
 package com.cydoniancitizen.mindora.app
 
 import android.content.Intent
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -52,7 +53,12 @@ fun MindoraApp(
         ) { innerPadding ->
             MindoraNavHost(
                 navController = navController,
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier
+                    .padding(innerPadding)
+                    // Padding alone does not consume: without this every nested Scaffold and
+                    // TopAppBar would apply the status bar inset a second time, and the screens
+                    // would start at different heights.
+                    .consumeWindowInsets(innerPadding),
             )
         }
     }

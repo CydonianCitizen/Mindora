@@ -136,7 +136,17 @@ class MindoraNavigationTest {
     @Test
     fun breathingStartShowsPhaseAndBackRequestsConfirmation() {
         composeRule.onNodeWithText("Breathing exercise").performClick()
+        // Waited for with the clock still on auto, because the container transform into the setup
+        // screen has to finish before there is a Start button to press.
+        composeRule.onNodeWithText("Start").assertIsDisplayed()
+
+        // A running exercise reports progress ten times a second for as long as it lasts, so from
+        // the moment it starts Compose never reports itself idle again and every assertion below
+        // would wait for a quiet moment that never arrives. Off auto-advance, the test drives the
+        // frames itself instead of waiting.
+        composeRule.mainClock.autoAdvance = false
         composeRule.onNodeWithText("Start").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
 
         composeRule.onNodeWithText("Running").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Inhale", substring = true)
@@ -147,6 +157,7 @@ class MindoraNavigationTest {
         composeRule.activityRule.scenario.onActivity {
             it.onBackPressedDispatcher.onBackPressed()
         }
+        composeRule.mainClock.advanceTimeByFrame()
 
         composeRule.onNodeWithText("End this exercise?").assertIsDisplayed()
         composeRule.onNodeWithText("Continue exercise").assertIsDisplayed()
