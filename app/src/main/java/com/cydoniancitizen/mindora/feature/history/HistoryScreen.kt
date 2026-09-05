@@ -232,7 +232,7 @@ private fun HistoryGroupedSessionList(
     ) {
         itemsIndexed(
             items = monthGroups,
-            key = { _, group -> group.yearMonthKey },
+            key = { _, group -> group.yearMonth.toString() },
         ) { _, monthGroup ->
             HistoryMonthGroupCard(monthGroup = monthGroup)
         }
@@ -245,7 +245,9 @@ private fun HistoryMonthGroupCard(
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalConfiguration.current.locales[0]
-    val uppercaseMonthLabel = monthGroup.monthYearLabel.uppercase(locale)
+    val monthYearLabel = monthGroup.yearMonth.atDay(1)
+        .format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
+    val uppercaseMonthLabel = monthYearLabel.uppercase(locale)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -257,7 +259,7 @@ private fun HistoryMonthGroupCard(
                 .padding(horizontal = 4.dp, vertical = 2.dp)
                 .semantics {
                     heading()
-                    contentDescription = monthGroup.monthYearLabel
+                    contentDescription = monthYearLabel
                 },
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -324,14 +326,15 @@ private fun HistorySessionRow(
     }
 
     val typeName = stringResource(typeNameRes)
+    val title = item.catalogueTitle ?: typeName
     val isInterrupted = session.status == MindfulnessSessionStatus.INTERRUPTED
     val statusText = if (isInterrupted) stringResource(R.string.session_status_interrupted) else null
 
-    val isTitleIdenticalToType = item.title.equals(typeName, ignoreCase = true)
+    val isTitleIdenticalToType = title.equals(typeName, ignoreCase = true)
     val accessibilityDesc = when {
         isTitleIdenticalToType && isInterrupted -> stringResource(
             R.string.history_session_accessibility_interrupted,
-            item.title,
+            title,
             accessibilityDuration,
             fullDate,
             visibleTime,
@@ -339,7 +342,7 @@ private fun HistorySessionRow(
 
         isTitleIdenticalToType -> stringResource(
             R.string.history_session_accessibility,
-            item.title,
+            title,
             accessibilityDuration,
             fullDate,
             visibleTime,
@@ -347,7 +350,7 @@ private fun HistorySessionRow(
 
         isInterrupted -> stringResource(
             R.string.history_session_accessibility_with_type_interrupted,
-            item.title,
+            title,
             typeName,
             accessibilityDuration,
             fullDate,
@@ -356,7 +359,7 @@ private fun HistorySessionRow(
 
         else -> stringResource(
             R.string.history_session_accessibility_with_type,
-            item.title,
+            title,
             typeName,
             accessibilityDuration,
             fullDate,
@@ -391,7 +394,7 @@ private fun HistorySessionRow(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = item.title,
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )

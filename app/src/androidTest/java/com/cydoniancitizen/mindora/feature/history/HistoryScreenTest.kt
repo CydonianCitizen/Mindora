@@ -14,6 +14,7 @@ import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
 import com.cydoniancitizen.mindora.ui.theme.MindoraTheme
 import java.time.Duration
 import java.time.Instant
+import java.time.YearMonth
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -73,22 +74,20 @@ class HistoryScreenTest {
                         availableFilters = HistoryFilter.entries,
                         monthGroups = listOf(
                             HistoryMonthGroup(
-                                monthYearLabel = "February 2026",
-                                yearMonthKey = "2026-02",
+                                yearMonth = YearMonth.of(2026, 2),
                                 sessions = listOf(
                                     HistorySessionDisplayItem(
                                         session = session1,
-                                        title = "Free meditation",
+                                        catalogueTitle = null,
                                     ),
                                 ),
                             ),
                             HistoryMonthGroup(
-                                monthYearLabel = "January 2026",
-                                yearMonthKey = "2026-01",
+                                yearMonth = YearMonth.of(2026, 1),
                                 sessions = listOf(
                                     HistorySessionDisplayItem(
                                         session = session2,
-                                        title = "Breathing exercise",
+                                        catalogueTitle = null,
                                     ),
                                 ),
                             ),

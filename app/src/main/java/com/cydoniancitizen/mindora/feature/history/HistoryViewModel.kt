@@ -10,8 +10,6 @@ import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.YearMonth
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -93,11 +91,9 @@ class HistoryViewModel @Inject constructor(
             sessions: List<MindfulnessSession>,
             stepTitleMap: Map<String, String> = emptyMap(),
             zoneId: ZoneId = ZoneId.systemDefault(),
-            locale: Locale = Locale.getDefault(),
         ): List<HistoryMonthGroup> {
             if (sessions.isEmpty()) return emptyList()
 
-            val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", locale)
             val grouped = sessions.groupBy { session ->
                 YearMonth.from(session.startedAt.atZone(zoneId))
             }
@@ -105,22 +101,14 @@ class HistoryViewModel @Inject constructor(
             return grouped.entries
                 .sortedByDescending { it.key }
                 .map { (yearMonth, monthSessions) ->
-                    val monthLabel = yearMonth.atDay(1).format(monthFormatter)
                     val items = monthSessions.map { session ->
-                        val stepTitle = session.sourceStepId?.let { stepTitleMap[it] }
-                        val title = stepTitle ?: when (session.type) {
-                            MindfulnessSessionType.GUIDED_MEDITATION -> "Guided meditation"
-                            MindfulnessSessionType.FREE_MEDITATION -> "Free meditation"
-                            MindfulnessSessionType.BREATHING_EXERCISE -> "Breathing exercise"
-                        }
                         HistorySessionDisplayItem(
                             session = session,
-                            title = title,
+                            catalogueTitle = session.sourceStepId?.let { stepTitleMap[it] },
                         )
                     }
                     HistoryMonthGroup(
-                        monthYearLabel = monthLabel,
-                        yearMonthKey = yearMonth.toString(),
+                        yearMonth = yearMonth,
                         sessions = items,
                     )
                 }

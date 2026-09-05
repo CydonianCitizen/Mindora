@@ -1,6 +1,7 @@
 package com.cydoniancitizen.mindora.feature.history
 
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
+import java.time.YearMonth
 
 enum class HistoryFilter {
     ALL,
@@ -11,12 +12,11 @@ enum class HistoryFilter {
 
 data class HistorySessionDisplayItem(
     val session: MindfulnessSession,
-    val title: String,
+    val catalogueTitle: String?,
 )
 
 data class HistoryMonthGroup(
-    val monthYearLabel: String,
-    val yearMonthKey: String,
+    val yearMonth: YearMonth,
     val sessions: List<HistorySessionDisplayItem>,
 )
 

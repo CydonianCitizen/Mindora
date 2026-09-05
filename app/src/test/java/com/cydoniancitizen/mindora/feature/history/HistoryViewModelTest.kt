@@ -8,7 +8,6 @@ import com.cydoniancitizen.mindora.feature.practice.MainDispatcherRule
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
-import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -53,7 +52,7 @@ class HistoryViewModelTest {
         val state = viewModel.uiState.value as HistoryUiState.Content
         assertEquals(HistoryFilter.ALL, state.selectedFilter)
         assertEquals(1, state.monthGroups.size)
-        assertEquals("January 2026", state.monthGroups[0].monthYearLabel)
+        assertEquals("2026-01", state.monthGroups[0].yearMonth.toString())
         assertEquals(2, state.monthGroups[0].sessions.size)
         assertEquals("newer", state.monthGroups[0].sessions[0].session.id)
         assertEquals("older", state.monthGroups[0].sessions[1].session.id)
@@ -69,8 +68,8 @@ class HistoryViewModelTest {
 
         val state = viewModel.uiState.value as HistoryUiState.Content
         assertEquals(2, state.monthGroups.size)
-        assertEquals("February 2026", state.monthGroups[0].monthYearLabel)
-        assertEquals("January 2026", state.monthGroups[1].monthYearLabel)
+        assertEquals("2026-02", state.monthGroups[0].yearMonth.toString())
+        assertEquals("2026-01", state.monthGroups[1].yearMonth.toString())
     }
 
     @Test
@@ -116,7 +115,7 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `groupSessionsByMonth formats localized month and year`() {
+    fun `groupSessionsByMonth keeps month and fallback title language neutral`() {
         val session1 = testSession("s1", "2025-10-24T14:30:00Z", MindfulnessSessionType.FREE_MEDITATION)
         val session2 = testSession("s2", "2025-09-12T09:00:00Z", MindfulnessSessionType.BREATHING_EXERCISE)
 
@@ -124,12 +123,12 @@ class HistoryViewModelTest {
             sessions = listOf(session1, session2),
             stepTitleMap = emptyMap(),
             zoneId = ZoneId.of("UTC"),
-            locale = Locale.US,
         )
 
         assertEquals(2, groups.size)
-        assertEquals("October 2025", groups[0].monthYearLabel)
-        assertEquals("September 2025", groups[1].monthYearLabel)
+        assertEquals("2025-10", groups[0].yearMonth.toString())
+        assertEquals("2025-09", groups[1].yearMonth.toString())
+        assertEquals(null, groups[0].sessions.single().catalogueTitle)
     }
 
     private class FakeSessionRepository(
