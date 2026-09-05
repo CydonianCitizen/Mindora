@@ -122,6 +122,27 @@ class PracticeViewModelTest {
     }
 
     @Test
+    fun `refresh recalculates weekly progress when only time changes`() = runTest {
+        val sessions = MutableStateFlow(listOf(testSession("completed")))
+        val timeSource = MutableTimeSource(Instant.parse("2026-07-30T12:00:00Z"))
+        val viewModel = viewModel(sessions = sessions, timeSource = timeSource)
+        runCurrent()
+        assertEquals(
+            Duration.ofSeconds(30),
+            (viewModel.uiState.value as PracticeUiState.Content).weeklyGoal.practicedDuration,
+        )
+
+        timeSource.now = Instant.parse("2026-08-10T12:00:00Z")
+        viewModel.refreshWeeklyGoal()
+        runCurrent()
+
+        assertEquals(
+            Duration.ZERO,
+            (viewModel.uiState.value as PracticeUiState.Content).weeklyGoal.practicedDuration,
+        )
+    }
+
+    @Test
     fun `catalogue and session failures produce error`() = runTest {
         val catalogueFailure = viewModel(
             contentRepository = FakeContentRepository { error("catalogue") },
@@ -165,11 +186,12 @@ class PracticeViewModelTest {
         paths: List<MindfulnessPath> = TestMindfulnessCatalogue.paths,
         sessions: Flow<List<MindfulnessSession>> = MutableSharedFlow(),
         contentRepository: FakeContentRepository = FakeContentRepository { paths },
+        timeSource: SessionTimeSource = FixedTimeSource,
     ) = PracticeViewModel(
         contentRepository = contentRepository,
         sessionRepository = FakeSessionRepository(sessions),
         preferencesRepository = FakePreferencesRepository(MindoraPreferences()),
-        timeSource = FixedTimeSource,
+        timeSource = timeSource,
     )
 
     private class FakeContentRepository(
@@ -212,6 +234,11 @@ class PracticeViewModelTest {
 
     private object FixedTimeSource : SessionTimeSource {
         override fun nowInstant(): Instant = Instant.parse("2026-07-30T12:00:00Z")
+        override fun elapsedRealtimeMillis(): Long = 0L
+    }
+
+    private class MutableTimeSource(var now: Instant) : SessionTimeSource {
+        override fun nowInstant(): Instant = now
         override fun elapsedRealtimeMillis(): Long = 0L
     }
 }

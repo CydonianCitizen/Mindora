@@ -9,12 +9,15 @@ import com.cydoniancitizen.mindora.core.progress.calculatePathProgress
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Duration
 import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 import java.time.temporal.WeekFields
 import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +36,7 @@ class PracticeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<PracticeUiState>(PracticeUiState.Loading)
     val uiState: StateFlow<PracticeUiState> = _uiState.asStateFlow()
     private var loadJob: Job? = null
+    private val weeklyGoalRefresh = MutableStateFlow(0L)
 
     init {
         loadPaths()
@@ -40,6 +44,22 @@ class PracticeViewModel @Inject constructor(
 
     fun retry() {
         loadPaths()
+    }
+
+    fun refreshWeeklyGoal() {
+        weeklyGoalRefresh.value += 1
+    }
+
+    suspend fun refreshAtNextWeekBoundary() {
+        val now = timeSource.nowInstant()
+        val zoneId = ZoneId.systemDefault()
+        val firstDayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
+        val nextWeekStart = now.atZone(zoneId).toLocalDate()
+            .with(TemporalAdjusters.next(firstDayOfWeek))
+            .atStartOfDay(zoneId)
+            .toInstant()
+        delay(Duration.between(now, nextWeekStart).toMillis().coerceAtLeast(1L))
+        refreshWeeklyGoal()
     }
 
     private fun loadPaths() {
@@ -51,7 +71,8 @@ class PracticeViewModel @Inject constructor(
                 combine(
                     sessionRepository.observeSessions(),
                     preferencesRepository.preferences,
-                ) { sessions, preferences ->
+                    weeklyGoalRefresh,
+                ) { sessions, preferences, _ ->
                     val now = timeSource.nowInstant()
                     val zoneId = ZoneId.systemDefault()
                     val firstDayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
