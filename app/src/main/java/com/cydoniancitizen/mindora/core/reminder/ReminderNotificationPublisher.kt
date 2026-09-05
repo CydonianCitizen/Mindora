@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -76,4 +77,27 @@ fun notificationsAllowed(context: Context): Boolean =
         context,
         Manifest.permission.POST_NOTIFICATIONS,
     ) == PackageManager.PERMISSION_GRANTED &&
-        NotificationManagerCompat.from(context).areNotificationsEnabled()
+        NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+        reminderChannelAllowsNotifications(reminderChannel(context))
+
+internal fun reminderChannelAllowsNotifications(channel: NotificationChannel?): Boolean =
+    channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
+
+internal fun reminderNotificationSettingsIntent(context: Context): Intent {
+    val channelExists = reminderChannel(context) != null
+    return Intent(
+        if (channelExists) {
+            Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS
+        } else {
+            Settings.ACTION_APP_NOTIFICATION_SETTINGS
+        },
+    ).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName).apply {
+        if (channelExists) {
+            putExtra(Settings.EXTRA_CHANNEL_ID, ReminderNotificationPublisher.CHANNEL_ID)
+        }
+    }
+}
+
+private fun reminderChannel(context: Context): NotificationChannel? =
+    context.getSystemService(NotificationManager::class.java)
+        .getNotificationChannel(ReminderNotificationPublisher.CHANNEL_ID)

@@ -1,8 +1,10 @@
 package com.cydoniancitizen.mindora.core.reminder
 
 import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.provider.Settings
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.cydoniancitizen.mindora.R
@@ -12,6 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -50,6 +53,12 @@ class ReminderPlatformTest {
 
         assertEquals(context.getString(R.string.reminder_channel_name), channel.name.toString())
         assertEquals(NotificationManager.IMPORTANCE_DEFAULT, channel.importance)
+        val settingsIntent = reminderNotificationSettingsIntent(context)
+        assertEquals(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS, settingsIntent.action)
+        assertEquals(
+            ReminderNotificationPublisher.CHANNEL_ID,
+            settingsIntent.getStringExtra(Settings.EXTRA_CHANNEL_ID),
+        )
         assertEquals(
             context.getString(R.string.reminder_notification_title),
             notification.extras.getString(Notification.EXTRA_TITLE),
@@ -65,6 +74,16 @@ class ReminderPlatformTest {
     @Test
     fun publishingDoesNotCrashWhenNotificationsAreUnavailable() {
         ReminderNotificationPublisher(context).postIfAllowed()
+    }
+
+    @Test
+    fun missingChannelIsAllowedButDisabledChannelIsBlocked() {
+        assertTrue(reminderChannelAllowsNotifications(null))
+        assertFalse(
+            reminderChannelAllowsNotifications(
+                NotificationChannel("disabled", "Disabled", NotificationManager.IMPORTANCE_NONE),
+            ),
+        )
     }
 
     private fun existingReminderPendingIntent() = reminderPendingIntent(

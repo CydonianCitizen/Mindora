@@ -3,8 +3,6 @@ package com.cydoniancitizen.mindora.feature.settings
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Context
-import android.content.Intent
-import android.provider.Settings
 import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -83,6 +81,7 @@ import com.cydoniancitizen.mindora.R
 import com.cydoniancitizen.mindora.core.export.defaultExportFileName
 import com.cydoniancitizen.mindora.core.preferences.model.supportedWeeklyGoalMinutes
 import com.cydoniancitizen.mindora.core.reminder.notificationsAllowed
+import com.cydoniancitizen.mindora.core.reminder.reminderNotificationSettingsIntent
 import java.time.LocalTime
 import java.util.Calendar
 
@@ -143,7 +142,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
         },
         onReminderTimeSelected = viewModel::setDailyReminderTime,
-        onOpenNotificationSettings = { openNotificationSettings(context) },
+        onOpenNotificationSettings = {
+            context.startActivity(reminderNotificationSettingsIntent(context))
+        },
         onDismissError = viewModel::clearOperationError,
         language = language,
         onLanguageSelected = { chosen ->
@@ -835,11 +836,4 @@ private fun SettingsMessage(
             }
         }
     }
-}
-
-private fun openNotificationSettings(context: Context) {
-    context.startActivity(
-        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
-    )
 }
