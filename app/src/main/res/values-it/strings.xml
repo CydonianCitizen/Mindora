@@ -1,4 +1,8 @@
 <resources>
+    <string name="session_haptics">Vibrazione</string>
+    <string name="session_haptics_off">Disattivata</string>
+    <string name="session_haptics_percent">%1$d%%</string>
+    <string name="session_haptics_unavailable">Vibrazione delicata non disponibile su questo dispositivo</string>
     <string name="app_name">Mindora</string>
     <string name="practice">Pratica</string>
     <string name="history">Cronologia</string>
@@ -170,6 +174,8 @@
     <string name="history_session_accessibility_with_type">%1$s, %2$s, %3$s, %4$s alle %5$s</string>
     <string name="history_session_accessibility_interrupted">%1$s, %2$s, %3$s alle %4$s, interrotta</string>
     <string name="history_session_accessibility_with_type_interrupted">%1$s, %2$s, %3$s, %4$s alle %5$s, interrotta</string>
+    <string name="settings_haptics_section">Vibrazione</string>
+    <string name="settings_haptics_description">Una vibrazione delicata che segue il ritmo degli esercizi di respirazione e della meditazione libera.</string>
     <string name="settings_language_section">Lingua</string>
     <string name="language_system">Predefinita di sistema</string>
     <string name="language_english">English</string>

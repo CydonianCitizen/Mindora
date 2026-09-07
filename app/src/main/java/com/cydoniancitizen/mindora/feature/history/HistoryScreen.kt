@@ -58,6 +58,7 @@ import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
 import com.cydoniancitizen.mindora.ui.theme.tabularNumerals
 import java.time.Duration
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
@@ -117,9 +118,11 @@ internal fun HistoryScreen(
                 contentAlignment = Alignment.TopCenter,
             ) {
                 Column(
+                    // Width cap before the fill, or fillMaxSize's exact constraints leave nothing
+                    // for widthIn to narrow.
                     modifier = Modifier
-                        .fillMaxSize()
-                        .widthIn(max = 840.dp),
+                        .widthIn(max = 840.dp)
+                        .fillMaxSize(),
                 ) {
                     HistoryHeaderSection()
 
@@ -228,30 +231,58 @@ private fun HistoryGroupedSessionList(
             top = 8.dp,
             bottom = 88.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        itemsIndexed(
-            items = monthGroups,
-            key = { _, group -> group.yearMonth.toString() },
-        ) { _, monthGroup ->
-            HistoryMonthGroupCard(monthGroup = monthGroup)
+        // Header and each session are items of their own. Composing a month as a single item meant
+        // that any sliver of it entering the viewport composed every session it holds.
+        monthGroups.forEachIndexed { groupIndex, monthGroup ->
+            item(key = "month-${monthGroup.yearMonth}") {
+                HistoryMonthHeader(
+                    yearMonth = monthGroup.yearMonth,
+                    modifier = Modifier.padding(top = if (groupIndex == 0) 0.dp else 16.dp),
+                )
+            }
+            itemsIndexed(
+                items = monthGroup.sessions,
+                key = { _, item -> item.session.id },
+            ) { index, item ->
+                val isLast = index == monthGroup.sessions.lastIndex
+                // The rows still read as one card per month: only the outer corners are rounded.
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    shape = RoundedCornerShape(
+                        topStart = if (index == 0) 12.dp else 0.dp,
+                        topEnd = if (index == 0) 12.dp else 0.dp,
+                        bottomStart = if (isLast) 12.dp else 0.dp,
+                        bottomEnd = if (isLast) 12.dp else 0.dp,
+                    ),
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        HistorySessionRow(item = item)
+                        if (!isLast) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun HistoryMonthGroupCard(
-    monthGroup: HistoryMonthGroup,
+private fun HistoryMonthHeader(
+    yearMonth: YearMonth,
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalConfiguration.current.locales[0]
-    val monthYearLabel = monthGroup.yearMonth.atDay(1)
+    val monthYearLabel = yearMonth.atDay(1)
         .format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
-    val uppercaseMonthLabel = monthYearLabel.uppercase(locale)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = uppercaseMonthLabel,
+            text = monthYearLabel.uppercase(locale),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
@@ -263,25 +294,6 @@ private fun HistoryMonthGroupCard(
                 },
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            ),
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                monthGroup.sessions.forEachIndexed { index, item ->
-                    HistorySessionRow(item = item)
-                    if (index < monthGroup.sessions.size - 1) {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -407,7 +419,9 @@ private fun HistorySessionRow(
                 Text(
                     text = statusText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
+                    // Ending a session early is a choice the app invites, and the record saved
+                    // fine: the error role is kept for what actually went wrong.
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }

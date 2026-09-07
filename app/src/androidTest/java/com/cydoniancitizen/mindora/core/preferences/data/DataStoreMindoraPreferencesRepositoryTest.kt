@@ -3,6 +3,7 @@ package com.cydoniancitizen.mindora.core.preferences.data
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.cydoniancitizen.mindora.core.preferences.model.DEFAULT_HAPTIC_INTENSITY
 import java.io.File
 import java.time.LocalTime
 import java.util.UUID
@@ -45,6 +46,16 @@ class DataStoreMindoraPreferencesRepositoryTest {
         assertNull(preferences.weeklyGoalMinutes)
         assertFalse(preferences.dailyReminderEnabled)
         assertEquals(LocalTime.of(20, 0), preferences.dailyReminderTime)
+        assertEquals(DEFAULT_HAPTIC_INTENSITY, preferences.hapticIntensity, 0f)
+    }
+
+    @Test
+    fun vibrationIntensityPersists() = runBlocking {
+        val repository = repository("vibration")
+
+        repository.update { it.copy(hapticIntensity = 0.7f) }
+
+        assertEquals(0.7f, repository.preferences.first().hapticIntensity, 0f)
     }
 
     @Test
@@ -52,10 +63,10 @@ class DataStoreMindoraPreferencesRepositoryTest {
         val repository = repository("goals")
 
         listOf(30, 60, 90, 120).forEach { minutes ->
-            repository.setWeeklyGoalMinutes(minutes)
+            repository.update { it.copy(weeklyGoalMinutes = minutes) }
             assertEquals(minutes, repository.preferences.first().weeklyGoalMinutes)
         }
-        repository.setWeeklyGoalMinutes(null)
+        repository.update { it.copy(weeklyGoalMinutes = null) }
 
         assertNull(repository.preferences.first().weeklyGoalMinutes)
     }
@@ -63,9 +74,9 @@ class DataStoreMindoraPreferencesRepositoryTest {
     @Test
     fun unsupportedGoalIsRejectedWithoutChangingStoredValue() = runBlocking {
         val repository = repository("invalid")
-        repository.setWeeklyGoalMinutes(60)
+        repository.update { it.copy(weeklyGoalMinutes = 60) }
 
-        val failure = captureFailure { repository.setWeeklyGoalMinutes(45) }
+        val failure = captureFailure { repository.update { it.copy(weeklyGoalMinutes = 45) } }
 
         assertTrue(failure is IllegalArgumentException)
         assertEquals(60, repository.preferences.first().weeklyGoalMinutes)
@@ -78,9 +89,9 @@ class DataStoreMindoraPreferencesRepositoryTest {
             repository.preferences.take(2).toList()
         }
 
-        repository.setDailyReminderEnabled(true)
+        repository.update { it.copy(dailyReminderEnabled = true) }
         val values = emissions.await()
-        repository.setDailyReminderTime(LocalTime.of(7, 35))
+        repository.update { it.copy(dailyReminderTime = LocalTime.of(7, 35)) }
         val preferences = repository.preferences.first()
 
         assertFalse(values.first().dailyReminderEnabled)
@@ -97,7 +108,7 @@ class DataStoreMindoraPreferencesRepositoryTest {
         )
 
         val readFailure = captureFailure { repository.preferences.first() }
-        val writeFailure = captureFailure { repository.setDailyReminderEnabled(true) }
+        val writeFailure = captureFailure { repository.update { it.copy(dailyReminderEnabled = true) } }
 
         assertNotNull(readFailure)
         assertNotNull(writeFailure)

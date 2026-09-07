@@ -42,16 +42,10 @@ class SettingsViewModel @Inject constructor(
         initialValue = SettingsUiState.Loading,
     )
 
-    fun setWeeklyGoal(minutes: Int?) {
-        viewModelScope.launch {
-            operationError.value = false
-            try {
-                preferencesRepository.setWeeklyGoalMinutes(minutes)
-            } catch (error: Exception) {
-                recordFailure(error)
-            }
-        }
-    }
+    fun setWeeklyGoal(minutes: Int?) = updatePreferences { it.copy(weeklyGoalMinutes = minutes) }
+
+    fun setHapticIntensity(intensity: Float) =
+        updatePreferences { it.copy(hapticIntensity = intensity) }
 
     fun enableDailyReminder() {
         val preferences = currentPreferences() ?: return
@@ -59,7 +53,7 @@ class SettingsViewModel @Inject constructor(
             operationError.value = false
             try {
                 reminderScheduler.scheduleDaily(preferences.dailyReminderTime)
-                preferencesRepository.setDailyReminderEnabled(true)
+                preferencesRepository.update { it.copy(dailyReminderEnabled = true) }
             } catch (error: Exception) {
                 try {
                     reminderScheduler.cancel()
@@ -75,7 +69,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             operationError.value = false
             try {
-                preferencesRepository.setDailyReminderEnabled(false)
+                preferencesRepository.update { it.copy(dailyReminderEnabled = false) }
                 reminderScheduler.cancel()
             } catch (error: Exception) {
                 recordFailure(error)
@@ -91,7 +85,7 @@ class SettingsViewModel @Inject constructor(
                 if (previous.dailyReminderEnabled) {
                     reminderScheduler.scheduleDaily(time)
                 }
-                preferencesRepository.setDailyReminderTime(time)
+                preferencesRepository.update { it.copy(dailyReminderTime = time) }
             } catch (error: Exception) {
                 if (previous.dailyReminderEnabled) {
                     try {
@@ -128,6 +122,17 @@ class SettingsViewModel @Inject constructor(
 
     fun clearExportStatus() {
         exportStatus.value = DataExportStatus.IDLE
+    }
+
+    private fun updatePreferences(transform: (MindoraPreferences) -> MindoraPreferences) {
+        viewModelScope.launch {
+            operationError.value = false
+            try {
+                preferencesRepository.update(transform)
+            } catch (error: Exception) {
+                recordFailure(error)
+            }
+        }
     }
 
     private fun currentPreferences(): MindoraPreferences? =

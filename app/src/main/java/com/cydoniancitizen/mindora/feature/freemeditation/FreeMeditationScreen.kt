@@ -1,8 +1,7 @@
 package com.cydoniancitizen.mindora.feature.freemeditation
 
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,10 +33,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -49,22 +56,33 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.cydoniancitizen.mindora.R
 import com.cydoniancitizen.mindora.core.format.formatRemaining
+import com.cydoniancitizen.mindora.core.preferences.model.DEFAULT_HAPTIC_INTENSITY
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.ui.BreathEasing
 import com.cydoniancitizen.mindora.ui.MindoraTopAppBar
 import com.cydoniancitizen.mindora.ui.endlessMotionAllowed
 import com.cydoniancitizen.mindora.ui.session.LinkedStepLoading
 import com.cydoniancitizen.mindora.ui.session.LinkedStepUnavailable
+import com.cydoniancitizen.mindora.ui.session.SessionHaptics
+import com.cydoniancitizen.mindora.ui.session.SessionHapticsViewModel
 import com.cydoniancitizen.mindora.ui.session.SessionSaveFailed
 import com.cydoniancitizen.mindora.ui.session.SessionSaving
 import com.cydoniancitizen.mindora.ui.session.SessionStateColumn
+import com.cydoniancitizen.mindora.ui.session.meditationCycleProgress
+import com.cydoniancitizen.mindora.ui.session.meditationHapticWaveform
 import com.cydoniancitizen.mindora.ui.softGlow
 import com.cydoniancitizen.mindora.ui.systemAnimationsEnabled
 import com.cydoniancitizen.mindora.ui.theme.tabularNumerals
 import java.time.Duration
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlinx.coroutines.isActive
 
 @Composable
 fun FreeMeditationScreen(
@@ -94,6 +112,8 @@ fun FreeMeditationScreen(
         viewModel.refreshTime()
     }
     BackHandler(onBack = onBack)
+    val hapticIntensity by hiltViewModel<SessionHapticsViewModel>()
+        .intensity.collectAsStateWithLifecycle()
     FreeMeditationScreen(
         uiState = uiState,
         onBack = onBack,
@@ -107,6 +127,7 @@ fun FreeMeditationScreen(
         onRetrySave = viewModel::retrySave,
         onDiscard = viewModel::discard,
         onDone = onNavigateBack,
+        hapticIntensity = hapticIntensity,
     )
 }
 
@@ -125,7 +146,29 @@ internal fun FreeMeditationScreen(
     onDiscard: () -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    hapticIntensity: Float = DEFAULT_HAPTIC_INTENSITY,
 ) {
+    val running = uiState as? FreeMeditationUiState.Running
+    val elapsedMillis = {
+        when (uiState) {
+            is FreeMeditationUiState.Running -> (
+                uiState.accumulatedActiveDuration.toMillis() +
+                    (SystemClock.elapsedRealtime() - uiState.resumedAtElapsedRealtimeMillis).coerceAtLeast(0)
+                ).coerceAtMost(uiState.plannedDuration.toMillis())
+            is FreeMeditationUiState.Paused -> uiState.activeDuration.toMillis()
+            else -> 0L
+        }
+    }
+    SessionHaptics(
+        running = running != null && !running.confirmEnd,
+        intensity = hapticIntensity,
+        patternKey = running?.startedAt,
+    ) {
+        running?.let { state ->
+            val elapsed = elapsedMillis()
+            meditationHapticWaveform(elapsed, state.plannedDuration.toMillis() - elapsed, hapticIntensity)
+        }
+    }
     Column(modifier = modifier.fillMaxSize()) {
         MindoraTopAppBar(
             title = stringResource(R.string.app_name),
@@ -147,6 +190,7 @@ internal fun FreeMeditationScreen(
             if (ringBreathing != null) {
                 MeditationRing(
                     breathing = ringBreathing,
+                    elapsedMillis = elapsedMillis,
                     modifier = Modifier
                         .size(RING_SIZE)
                         .align(Alignment.Center),
@@ -207,29 +251,32 @@ internal fun FreeMeditationScreen(
  * The ring behind a free meditation: still while the duration is being chosen, breathing once the
  * session runs.
  *
- * One instance serves every state, and stillness is exactly the value the pulse starts from, so
- * nothing snaps when the session begins — the ring leaves rest at zero velocity and the eye cannot
- * catch the frame where motion started.
+ * Scale, orbit and haptics share the session clock, including pause/resume and background returns.
  */
 @Composable
 internal fun MeditationRing(
     breathing: Boolean,
+    elapsedMillis: () -> Long,
     modifier: Modifier = Modifier,
 ) {
-    val pulse = remember { Animatable(RING_REST) }
+    val latestElapsedMillis by rememberUpdatedState(elapsedMillis)
+    var elapsed by remember { mutableLongStateOf(elapsedMillis()) }
     val animate = breathing && systemAnimationsEnabled()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(animate) {
+    LaunchedEffect(animate, lifecycleOwner) {
+        if (!breathing) elapsed = latestElapsedMillis()
         if (!animate || !endlessMotionAllowed()) return@LaunchedEffect
-        // Cancelling this effect leaves the Animatable wherever it stands, so pausing freezes the
-        // ring mid-breath instead of snapping it back to rest.
-        while (true) {
-            pulse.animateTo(RING_SWELL, tween(RING_HALF_CYCLE_MILLIS, easing = BreathEasing))
-            pulse.animateTo(RING_REST, tween(RING_HALF_CYCLE_MILLIS, easing = BreathEasing))
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (isActive) {
+                withFrameNanos { elapsed = latestElapsedMillis() }
+            }
         }
     }
 
     val band = MaterialTheme.colorScheme.primaryContainer
+    val colors = MaterialTheme.colorScheme
+    val light = if (colors.surface.luminance() > 0.5f) colors.inversePrimary else colors.primary
     val ring = remember(band) {
         softGlow(
             color = band,
@@ -246,10 +293,30 @@ internal fun MeditationRing(
         modifier = modifier
             .clearAndSetSemantics {}
             .graphicsLayer {
-                scaleX = pulse.value
-                scaleY = pulse.value
+                val progress = meditationCycleProgress(elapsed)
+                val openness = if (progress < 0.5f) progress * 2f else (1f - progress) * 2f
+                val scale = RING_REST + (RING_SWELL - RING_REST) * BreathEasing.transform(openness)
+                scaleX = scale
+                scaleY = scale
             }
-            .background(ring),
+            .background(ring)
+            .drawBehind {
+                if (elapsed > 0L) {
+                    val angle = meditationCycleProgress(elapsed) * 2 * PI - PI / 2
+                    val radius = size.minDimension * 0.335f
+                    val position = center + Offset(cos(angle).toFloat(), sin(angle).toFloat()) * radius
+                    val glowRadius = size.minDimension * 0.09f
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            listOf(light.copy(alpha = 0.45f), light.copy(alpha = 0f)),
+                            center = position,
+                            radius = glowRadius,
+                        ),
+                        radius = glowRadius,
+                        center = position,
+                    )
+                }
+            },
     )
 }
 
@@ -268,9 +335,6 @@ private const val RING_REST = 1f
  */
 private const val RING_SWELL = 1.32f
 private const val RING_ALPHA = 0.5f
-
-/** Ten seconds a cycle: six breaths a minute, the pace coherent breathing settles at. */
-private const val RING_HALF_CYCLE_MILLIS = 5_000
 
 @Composable
 internal fun MeditationDurationDisplay(

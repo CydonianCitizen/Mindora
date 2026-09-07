@@ -1,5 +1,6 @@
 package com.cydoniancitizen.mindora.feature.breathing
 
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -46,19 +47,24 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.R
 import com.cydoniancitizen.mindora.core.format.formatRemaining
+import com.cydoniancitizen.mindora.core.preferences.model.DEFAULT_HAPTIC_INTENSITY
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.ui.BreathEasing
 import com.cydoniancitizen.mindora.ui.MindoraTopAppBar
 import com.cydoniancitizen.mindora.ui.endlessMotionAllowed
 import com.cydoniancitizen.mindora.ui.session.LinkedStepLoading
 import com.cydoniancitizen.mindora.ui.session.LinkedStepUnavailable
+import com.cydoniancitizen.mindora.ui.session.SessionHaptics
+import com.cydoniancitizen.mindora.ui.session.SessionHapticsViewModel
 import com.cydoniancitizen.mindora.ui.session.SessionSaveFailed
 import com.cydoniancitizen.mindora.ui.session.SessionSaving
 import com.cydoniancitizen.mindora.ui.session.SessionStateColumn
+import com.cydoniancitizen.mindora.ui.session.breathingHapticWaveform
 import com.cydoniancitizen.mindora.ui.softGlow
 import com.cydoniancitizen.mindora.ui.systemAnimationsEnabled
 import com.cydoniancitizen.mindora.ui.theme.tabularNumerals
 import java.time.Duration
+import kotlin.math.roundToLong
 
 @Composable
 fun BreathingExerciseScreen(
@@ -88,6 +94,8 @@ fun BreathingExerciseScreen(
         viewModel.refreshTime()
     }
     BackHandler(onBack = onBack)
+    val hapticIntensity by hiltViewModel<SessionHapticsViewModel>()
+        .intensity.collectAsStateWithLifecycle()
     BreathingExerciseScreen(
         uiState = uiState,
         onBack = onBack,
@@ -100,6 +108,7 @@ fun BreathingExerciseScreen(
         onRetrySave = viewModel::retrySave,
         onDiscard = viewModel::discard,
         onDone = onNavigateBack,
+        hapticIntensity = hapticIntensity,
     )
 }
 
@@ -117,7 +126,32 @@ internal fun BreathingExerciseScreen(
     onDiscard: () -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    hapticIntensity: Float = DEFAULT_HAPTIC_INTENSITY,
 ) {
+    val running = uiState as? BreathingExerciseUiState.Running
+    SessionHaptics(
+        running = running != null && !running.confirmEnd,
+        intensity = hapticIntensity,
+        patternKey = running?.let { it.currentCycle to it.currentPhase },
+    ) {
+        running?.let { state ->
+            val elapsedSinceReport = (
+                state.accumulatedActiveDuration.toMillis() +
+                    (SystemClock.elapsedRealtime() - state.resumedAtElapsedRealtimeMillis).coerceAtLeast(0) -
+                    state.activeDuration.toMillis()
+                ).coerceAtLeast(0)
+            val remaining = state.phaseRemainingDuration.toMillis() - elapsedSinceReport
+            val phaseDuration = if (state.phaseProgress < 1f) {
+                (state.phaseRemainingDuration.toMillis() / (1.0 - state.phaseProgress)).roundToLong()
+            } else 0L
+            breathingHapticWaveform(
+                phase = state.currentPhase,
+                progress = if (phaseDuration > 0) 1f - remaining.toFloat() / phaseDuration else 1f,
+                remainingMillis = remaining,
+                intensity = hapticIntensity,
+            )
+        }
+    }
     Column(modifier = modifier.fillMaxSize()) {
         MindoraTopAppBar(
             title = stringResource(R.string.breathing_exercise),

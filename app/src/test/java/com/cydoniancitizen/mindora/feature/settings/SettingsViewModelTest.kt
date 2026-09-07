@@ -50,6 +50,18 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `vibration intensity persists`() = runTest {
+        val repository = FakePreferencesRepository()
+        val viewModel = SettingsViewModel(repository, FakeScheduler(), FakeDataExporter())
+        advanceUntilIdle()
+
+        viewModel.setHapticIntensity(0.7f)
+        advanceUntilIdle()
+
+        assertEquals(0.7f, repository.state.value.hapticIntensity, 0f)
+    }
+
+    @Test
     fun `permission-granted enable persists and schedules then disable cancels`() = runTest {
         val repository = FakePreferencesRepository()
         val scheduler = FakeScheduler()
@@ -79,7 +91,7 @@ class SettingsViewModelTest {
         assertEquals(LocalTime.of(7, 15), repository.state.value.dailyReminderTime)
         assertTrue(scheduler.scheduledTimes.isEmpty())
 
-        repository.setDailyReminderEnabled(true)
+        repository.update { it.copy(dailyReminderEnabled = true) }
         advanceUntilIdle()
         viewModel.setDailyReminderTime(LocalTime.of(8, 30))
         advanceUntilIdle()
@@ -118,9 +130,9 @@ class SettingsViewModelTest {
     fun `preference read failure produces error`() = runTest {
         val failingRepository = object : MindoraPreferencesRepository {
             override val preferences: Flow<MindoraPreferences> = flow { error("preferences") }
-            override suspend fun setWeeklyGoalMinutes(minutes: Int?) = Unit
-            override suspend fun setDailyReminderEnabled(enabled: Boolean) = Unit
-            override suspend fun setDailyReminderTime(time: LocalTime) = Unit
+            override suspend fun update(
+                transform: (MindoraPreferences) -> MindoraPreferences,
+            ) = Unit
         }
         val viewModel = SettingsViewModel(failingRepository, FakeScheduler(), FakeDataExporter())
 
@@ -136,19 +148,9 @@ class SettingsViewModelTest {
         val state = MutableStateFlow(initial)
         override val preferences: Flow<MindoraPreferences> = state
 
-        override suspend fun setWeeklyGoalMinutes(minutes: Int?) {
+        override suspend fun update(transform: (MindoraPreferences) -> MindoraPreferences) {
             check(!failWrites) { "write" }
-            state.value = state.value.copy(weeklyGoalMinutes = minutes)
-        }
-
-        override suspend fun setDailyReminderEnabled(enabled: Boolean) {
-            check(!failWrites) { "write" }
-            state.value = state.value.copy(dailyReminderEnabled = enabled)
-        }
-
-        override suspend fun setDailyReminderTime(time: LocalTime) {
-            check(!failWrites) { "write" }
-            state.value = state.value.copy(dailyReminderTime = time)
+            state.value = transform(state.value)
         }
     }
 

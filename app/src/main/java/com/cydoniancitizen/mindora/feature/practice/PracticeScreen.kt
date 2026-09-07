@@ -143,9 +143,11 @@ internal fun PracticeScreen(
             contentAlignment = Alignment.TopCenter,
         ) {
             LazyColumn(
+                // Width cap first: fillMaxSize hands down exact constraints, so a widthIn placed
+                // after it is ignored and the content stretches across the whole window.
                 modifier = Modifier
-                    .fillMaxSize()
-                    .widthIn(max = 840.dp),
+                    .widthIn(max = 840.dp)
+                    .fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 24.dp,
                     end = 24.dp,

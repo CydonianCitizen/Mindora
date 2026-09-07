@@ -12,7 +12,6 @@ import com.cydoniancitizen.mindora.testsupport.TestMindfulnessCatalogue
 import com.cydoniancitizen.mindora.testsupport.testSession
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalTime
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -219,16 +218,8 @@ class PracticeViewModelTest {
         private val state = MutableStateFlow(initialValue)
         override val preferences: Flow<MindoraPreferences> = state
 
-        override suspend fun setWeeklyGoalMinutes(minutes: Int?) {
-            state.value = state.value.copy(weeklyGoalMinutes = minutes)
-        }
-
-        override suspend fun setDailyReminderEnabled(enabled: Boolean) {
-            state.value = state.value.copy(dailyReminderEnabled = enabled)
-        }
-
-        override suspend fun setDailyReminderTime(time: LocalTime) {
-            state.value = state.value.copy(dailyReminderTime = time)
+        override suspend fun update(transform: (MindoraPreferences) -> MindoraPreferences) {
+            state.value = transform(state.value)
         }
     }
 

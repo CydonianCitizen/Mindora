@@ -38,9 +38,7 @@ class ReminderReschedulingTest {
             ),
         )
 
-        override suspend fun setWeeklyGoalMinutes(minutes: Int?) = Unit
-        override suspend fun setDailyReminderEnabled(enabled: Boolean) = Unit
-        override suspend fun setDailyReminderTime(time: LocalTime) = Unit
+        override suspend fun update(transform: (MindoraPreferences) -> MindoraPreferences) = Unit
     }
 
     private class FakeScheduler : MindfulnessReminderScheduler {

@@ -10,6 +10,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
+import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Duration
 import java.util.concurrent.ExecutionException
@@ -59,6 +60,9 @@ class GuidedPlaybackConnection @Inject constructor(
         override fun onDisconnected(controller: MediaController) {
             this@GuidedPlaybackConnection.controller = null
             progressJob?.cancel()
+            // A future that has already handed over its controller never hands over another one, so
+            // it is dropped here: whatever asks to play next has to build a fresh connection.
+            discardConnection()
             if (!released) _state.value = GuidedPlaybackState.Disconnected
         }
     }
@@ -69,19 +73,28 @@ class GuidedPlaybackConnection @Inject constructor(
         }
     }
 
-    private val controllerFuture = MediaController.Builder(
-        context,
-        SessionToken(context, ComponentName(context, MindoraPlaybackService::class.java)),
-    )
-        .setListener(controllerListener)
-        .buildAsync()
+    private var controllerFuture: ListenableFuture<MediaController>? = null
 
     init {
-        controllerFuture.addListener(
+        connect()
+    }
+
+    /** Builds a connection, unless one is already connected or still on its way. */
+    private fun connect() {
+        if (released || controllerFuture != null) return
+        _state.value = GuidedPlaybackState.Connecting
+        val future = MediaController.Builder(
+            context,
+            SessionToken(context, ComponentName(context, MindoraPlaybackService::class.java)),
+        )
+            .setListener(controllerListener)
+            .buildAsync()
+        controllerFuture = future
+        future.addListener(
             {
                 if (released) return@addListener
                 try {
-                    val connected = controllerFuture.get()
+                    val connected = future.get()
                     controller = connected
                     connected.addListener(playerListener)
                     publish(connected, connected.sessionExtras)
@@ -92,9 +105,11 @@ class GuidedPlaybackConnection @Inject constructor(
                         })
                     }
                 } catch (_: ExecutionException) {
+                    discardConnection()
                     _state.value = GuidedPlaybackState.Disconnected
                 } catch (_: InterruptedException) {
                     Thread.currentThread().interrupt()
+                    discardConnection()
                     _state.value = GuidedPlaybackState.Disconnected
                 }
             },
@@ -102,10 +117,18 @@ class GuidedPlaybackConnection @Inject constructor(
         )
     }
 
+    private fun discardConnection() {
+        controllerFuture?.let(MediaController::releaseFuture)
+        controllerFuture = null
+    }
+
     override fun start(stepId: String) {
         val connected = controller
         if (connected == null) {
             pendingStepId = stepId
+            // Without this a retry after a disconnection only parks the request: the first future
+            // was already spent, so nothing would ever pick the step up again.
+            connect()
             return
         }
         send(GuidedPlaybackProtocol.LOAD, Bundle().apply {
@@ -135,7 +158,7 @@ class GuidedPlaybackConnection @Inject constructor(
         progressJob?.cancel()
         controller?.removeListener(playerListener)
         controller = null
-        MediaController.releaseFuture(controllerFuture)
+        discardConnection()
         scope.cancel()
     }
 

@@ -41,6 +41,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -51,6 +52,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -82,8 +84,10 @@ import com.cydoniancitizen.mindora.core.export.defaultExportFileName
 import com.cydoniancitizen.mindora.core.preferences.model.supportedWeeklyGoalMinutes
 import com.cydoniancitizen.mindora.core.reminder.notificationsAllowed
 import com.cydoniancitizen.mindora.core.reminder.reminderNotificationSettingsIntent
+import com.cydoniancitizen.mindora.ui.session.rememberSessionVibrator
 import java.time.LocalTime
 import java.util.Calendar
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
@@ -124,35 +128,38 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 
     SettingsScreen(
         uiState = uiState,
+        actions = SettingsActions(
+            onWeeklyGoalSelected = viewModel::setWeeklyGoal,
+            onReminderToggle = { enabled ->
+                if (!enabled) {
+                    viewModel.disableDailyReminder()
+                } else if (systemNotificationsAllowed) {
+                    permissionDenied = false
+                    viewModel.enableDailyReminder()
+                } else if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    permissionDenied = true
+                }
+            },
+            onReminderTimeSelected = viewModel::setDailyReminderTime,
+            onOpenNotificationSettings = {
+                context.startActivity(reminderNotificationSettingsIntent(context))
+            },
+            onHapticIntensitySelected = viewModel::setHapticIntensity,
+            onLanguageSelected = { chosen ->
+                language = chosen
+                setAppLanguage(context, chosen)
+            },
+            onExportClick = { exportLauncher.launch(defaultExportFileName()) },
+            onDismissExportStatus = viewModel::clearExportStatus,
+            onDismissError = viewModel::clearOperationError,
+        ),
         notificationsAllowed = systemNotificationsAllowed,
         permissionDenied = permissionDenied,
-        onWeeklyGoalSelected = viewModel::setWeeklyGoal,
-        onReminderToggle = { enabled ->
-            if (!enabled) {
-                viewModel.disableDailyReminder()
-            } else if (systemNotificationsAllowed) {
-                permissionDenied = false
-                viewModel.enableDailyReminder()
-            } else if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-            ) {
-                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            } else {
-                permissionDenied = true
-            }
-        },
-        onReminderTimeSelected = viewModel::setDailyReminderTime,
-        onOpenNotificationSettings = {
-            context.startActivity(reminderNotificationSettingsIntent(context))
-        },
-        onDismissError = viewModel::clearOperationError,
         language = language,
-        onLanguageSelected = { chosen ->
-            language = chosen
-            setAppLanguage(context, chosen)
-        },
-        onExportClick = { exportLauncher.launch(defaultExportFileName()) },
-        onDismissExportStatus = viewModel::clearExportStatus,
     )
 }
 
@@ -162,18 +169,11 @@ private const val EXPORT_MIME_TYPE = "application/json"
 @Composable
 internal fun SettingsScreen(
     uiState: SettingsUiState,
+    actions: SettingsActions,
     notificationsAllowed: Boolean,
     permissionDenied: Boolean,
-    onWeeklyGoalSelected: (Int?) -> Unit,
-    onReminderToggle: (Boolean) -> Unit,
-    onReminderTimeSelected: (LocalTime) -> Unit,
-    onOpenNotificationSettings: () -> Unit,
-    onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
     language: AppLanguage = AppLanguage.SYSTEM,
-    onLanguageSelected: (AppLanguage) -> Unit = {},
-    onExportClick: () -> Unit = {},
-    onDismissExportStatus: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         TopAppBar(
@@ -204,17 +204,10 @@ internal fun SettingsScreen(
         ) {
             SettingsBody(
                 uiState = uiState,
+                actions = actions,
                 notificationsAllowed = notificationsAllowed,
                 permissionDenied = permissionDenied,
-                onWeeklyGoalSelected = onWeeklyGoalSelected,
-                onReminderToggle = onReminderToggle,
-                onReminderTimeSelected = onReminderTimeSelected,
-                onOpenNotificationSettings = onOpenNotificationSettings,
-                onDismissError = onDismissError,
                 language = language,
-                onLanguageSelected = onLanguageSelected,
-                onExportClick = onExportClick,
-                onDismissExportStatus = onDismissExportStatus,
             )
         }
     }
@@ -223,17 +216,10 @@ internal fun SettingsScreen(
 @Composable
 private fun SettingsBody(
     uiState: SettingsUiState,
+    actions: SettingsActions,
     notificationsAllowed: Boolean,
     permissionDenied: Boolean,
-    onWeeklyGoalSelected: (Int?) -> Unit,
-    onReminderToggle: (Boolean) -> Unit,
-    onReminderTimeSelected: (LocalTime) -> Unit,
-    onOpenNotificationSettings: () -> Unit,
-    onDismissError: () -> Unit,
     language: AppLanguage,
-    onLanguageSelected: (AppLanguage) -> Unit,
-    onExportClick: () -> Unit,
-    onDismissExportStatus: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
@@ -275,7 +261,7 @@ private fun SettingsBody(
                     ) {
                         WeeklyGoalSetting(
                             weeklyGoalMinutes = uiState.preferences.weeklyGoalMinutes,
-                            onWeeklyGoalSelected = onWeeklyGoalSelected,
+                            onWeeklyGoalSelected = actions.onWeeklyGoalSelected,
                         )
                     }
                 }
@@ -289,8 +275,8 @@ private fun SettingsBody(
                         DailyReminderSetting(
                             enabled = uiState.preferences.dailyReminderEnabled,
                             time = uiState.preferences.dailyReminderTime,
-                            onToggle = onReminderToggle,
-                            onTimeSelected = onReminderTimeSelected,
+                            onToggle = actions.onReminderToggle,
+                            onTimeSelected = actions.onReminderTimeSelected,
                         )
                         if (showNotificationBlock) {
                             HorizontalDivider(
@@ -299,7 +285,7 @@ private fun SettingsBody(
                             )
                             NotificationPermissionMessage(
                                 reminderEnabled = uiState.preferences.dailyReminderEnabled,
-                                onOpenNotificationSettings = onOpenNotificationSettings,
+                                onOpenNotificationSettings = actions.onOpenNotificationSettings,
                             )
                         }
                     }
@@ -309,7 +295,18 @@ private fun SettingsBody(
                         SettingsMessage(
                             text = stringResource(R.string.settings_save_error),
                             actionLabel = stringResource(R.string.dismiss),
-                            onAction = onDismissError,
+                            onAction = actions.onDismissError,
+                        )
+                    }
+                }
+                item {
+                    SettingsSection(
+                        title = stringResource(R.string.settings_haptics_section),
+                        icon = ImageVector.vectorResource(R.drawable.ic_vibration),
+                    ) {
+                        HapticIntensitySetting(
+                            intensity = uiState.preferences.hapticIntensity,
+                            onIntensitySelected = actions.onHapticIntensitySelected,
                         )
                     }
                 }
@@ -320,7 +317,7 @@ private fun SettingsBody(
                     ) {
                         LanguageSetting(
                             selected = language,
-                            onSelect = onLanguageSelected,
+                            onSelect = actions.onLanguageSelected,
                         )
                     }
                 }
@@ -331,8 +328,8 @@ private fun SettingsBody(
                     ) {
                         DataExportSetting(
                             status = uiState.exportStatus,
-                            onExportClick = onExportClick,
-                            onDismissStatus = onDismissExportStatus,
+                            onExportClick = actions.onExportClick,
+                            onDismissStatus = actions.onDismissExportStatus,
                         )
                     }
                 }
@@ -668,6 +665,51 @@ private fun NotificationPermissionMessage(
             modifier = Modifier.padding(top = 4.dp),
         ) {
             Text(text = stringResource(R.string.open_notification_settings))
+        }
+    }
+}
+
+/**
+ * Lives here rather than on the session screens so the vibration is chosen once, before a session,
+ * instead of being fiddled with mid-practice. The slider only commits on release: the value is a
+ * stored preference, not something to rewrite on every drag frame.
+ */
+@Composable
+internal fun HapticIntensitySetting(
+    intensity: Float,
+    onIntensitySelected: (Float) -> Unit,
+) {
+    val supported = rememberSessionVibrator() != null
+    var sliderValue by remember(intensity) { mutableFloatStateOf(intensity) }
+    val label = stringResource(R.string.session_haptics)
+    val value = stringResource(
+        if (!supported) R.string.session_haptics_unavailable
+        else if (sliderValue == 0f) R.string.session_haptics_off
+        else R.string.session_haptics_percent,
+        (sliderValue * 100).roundToInt(),
+    )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.settings_haptics_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = "$label · $value",
+            modifier = Modifier.padding(top = 16.dp),
+            style = MaterialTheme.typography.labelLarge,
+        )
+        if (supported) {
+            Slider(
+                value = sliderValue,
+                onValueChange = { sliderValue = it },
+                onValueChangeFinished = { onIntensitySelected(sliderValue) },
+                steps = 9,
+                modifier = Modifier.semantics {
+                    contentDescription = label
+                    stateDescription = value
+                },
+            )
         }
     }
 }

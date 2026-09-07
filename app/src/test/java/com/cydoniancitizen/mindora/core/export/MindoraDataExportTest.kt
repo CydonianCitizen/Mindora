@@ -36,7 +36,7 @@ class MindoraDataExportTest {
         sourcePathId = null,
         sourceStepId = null,
         startedAt = Instant.parse("2026-09-05T19:00:00Z"),
-        activeDuration = Duration.ofSeconds(95),
+        activeDuration = Duration.ofMillis(1_999),
         plannedDuration = null,
     )
 
@@ -58,7 +58,7 @@ class MindoraDataExportTest {
         val document = export()
 
         assertEquals("Mindora", document.application)
-        assertEquals(1, document.format)
+        assertEquals(2, document.format)
         assertEquals("1.0.5", document.appVersionName)
         assertEquals(3, document.appVersionCode)
         assertEquals("2026-09-05T20:15:00Z", document.exportedAt)
@@ -80,7 +80,7 @@ class MindoraDataExportTest {
     }
 
     @Test
-    fun `every session is exported in order, with its durations in seconds`() {
+    fun `every session is exported in order, with its durations in milliseconds`() {
         val document = export(sessions = listOf(guidedSession, freeSession))
 
         assertEquals(listOf("session-1", "session-2"), document.sessions.map { it.id })
@@ -90,8 +90,20 @@ class MindoraDataExportTest {
         assertEquals("COMPLETED", guided.status)
         assertEquals("path-1", guided.sourcePathId)
         assertEquals("2026-09-05T07:30:00Z", guided.startedAt)
-        assertEquals(600L, guided.activeDurationSeconds)
-        assertEquals(720L, guided.plannedDurationSeconds)
+        assertEquals(600_000L, guided.activeDurationMillis)
+        assertEquals(720_000L, guided.plannedDurationMillis)
+    }
+
+    @Test
+    fun `sub-second and fractional durations survive the export`() {
+        val document = export(
+            sessions = listOf(
+                freeSession,
+                freeSession.copy(id = "session-3", activeDuration = Duration.ofMillis(500)),
+            ),
+        )
+
+        assertEquals(listOf(1_999L, 500L), document.sessions.map { it.activeDurationMillis })
     }
 
     @Test
@@ -101,7 +113,7 @@ class MindoraDataExportTest {
         assertNull(document.preferences.weeklyGoalMinutes)
         assertNull(document.sessions.single().sourcePathId)
         assertNull(document.sessions.single().sourceStepId)
-        assertNull(document.sessions.single().plannedDurationSeconds)
+        assertNull(document.sessions.single().plannedDurationMillis)
     }
 
     @Test

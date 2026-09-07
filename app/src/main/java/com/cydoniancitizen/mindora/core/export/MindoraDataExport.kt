@@ -24,7 +24,7 @@ import kotlinx.serialization.json.Json
  * A file someone keeps for years outlives the version that wrote it, so the reader needs to know
  * which layout it is looking at without guessing from the app version that produced it.
  */
-private const val EXPORT_FORMAT = 1
+private const val EXPORT_FORMAT = 2
 
 @Serializable
 internal data class ExportDocument(
@@ -52,8 +52,10 @@ internal data class ExportSession(
     val sourcePathId: String?,
     val sourceStepId: String?,
     val startedAt: String,
-    val activeDurationSeconds: Long,
-    val plannedDurationSeconds: Long?,
+    // Room keeps milliseconds; exporting seconds silently rounded a 1,999 ms session down to 1 and
+    // a sub-second one to 0, so the file no longer matches what the app recorded.
+    val activeDurationMillis: Long,
+    val plannedDurationMillis: Long?,
 )
 
 private val exportJson = Json {
@@ -92,8 +94,8 @@ internal fun buildExportJson(
                 sourcePathId = session.sourcePathId,
                 sourceStepId = session.sourceStepId,
                 startedAt = session.startedAt.toString(),
-                activeDurationSeconds = session.activeDuration.seconds,
-                plannedDurationSeconds = session.plannedDuration?.seconds,
+                activeDurationMillis = session.activeDuration.toMillis(),
+                plannedDurationMillis = session.plannedDuration?.toMillis(),
             )
         },
     ),
@@ -118,7 +120,9 @@ class ContentResolverDataExporter @Inject constructor(
     private val sessionRepository: MindfulnessSessionRepository,
     private val preferencesRepository: MindoraPreferencesRepository,
 ) : MindoraDataExporter {
-    override suspend fun exportTo(destination: Uri) {
+    // Reading the history, mapping it and serialising it all happen off the main thread too: a long
+    // history is enough JSON to stall the frame that the export button was tapped on.
+    override suspend fun exportTo(destination: Uri) = withContext(Dispatchers.IO) {
         val document = buildExportJson(
             appVersionName = BuildConfig.VERSION_NAME,
             appVersionCode = BuildConfig.VERSION_CODE,
@@ -126,10 +130,8 @@ class ContentResolverDataExporter @Inject constructor(
             preferences = preferencesRepository.preferences.first(),
             sessions = sessionRepository.observeSessions().first(),
         )
-        withContext(Dispatchers.IO) {
-            val stream = context.contentResolver.openOutputStream(destination)
-                ?: error("Export destination could not be opened for writing.")
-            stream.use { it.write(document.toByteArray()) }
-        }
+        val stream = context.contentResolver.openOutputStream(destination)
+            ?: error("Export destination could not be opened for writing.")
+        stream.use { it.write(document.toByteArray()) }
     }
 }

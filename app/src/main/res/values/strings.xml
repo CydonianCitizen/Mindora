@@ -1,4 +1,8 @@
 <resources>
+    <string name="session_haptics">Vibration</string>
+    <string name="session_haptics_off">Off</string>
+    <string name="session_haptics_percent">%1$d%%</string>
+    <string name="session_haptics_unavailable">Gentle vibration unavailable on this device</string>
     <string name="app_name">Mindora</string>
     <string name="practice">Practice</string>
     <string name="history">History</string>
@@ -170,6 +174,8 @@
     <string name="history_session_accessibility_with_type">%1$s, %2$s, %3$s, %4$s at %5$s</string>
     <string name="history_session_accessibility_interrupted">%1$s, %2$s, %3$s at %4$s, interrupted</string>
     <string name="history_session_accessibility_with_type_interrupted">%1$s, %2$s, %3$s, %4$s at %5$s, interrupted</string>
+    <string name="settings_haptics_section">Vibration</string>
+    <string name="settings_haptics_description">A gentle vibration that follows the rhythm of breathing exercises and free meditation.</string>
     <string name="settings_language_section">Language</string>
     <string name="language_system">System default</string>
     <string name="language_english">English</string>

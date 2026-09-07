@@ -190,6 +190,8 @@ class SettingsScreenTest {
 
         // Asserted last, and after a scroll: reaching the sections at the bottom drops the ones at
         // the top out of composition.
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Vibration"))
+        composeRule.onNodeWithText("Vibration").assert(heading)
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Language"))
         composeRule.onNodeWithText("Language").assert(heading)
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Your data"))
@@ -226,15 +228,14 @@ class SettingsScreenTest {
     ) {
         SettingsScreen(
             uiState = SettingsUiState.Content(preferences),
+            actions = SettingsActions(
+                onWeeklyGoalSelected = onWeeklyGoalSelected,
+                onReminderToggle = onReminderToggle,
+                onLanguageSelected = onLanguageSelected,
+                onExportClick = onExportClick,
+            ),
             notificationsAllowed = notificationsAllowed,
             permissionDenied = false,
-            onWeeklyGoalSelected = onWeeklyGoalSelected,
-            onReminderToggle = onReminderToggle,
-            onReminderTimeSelected = {},
-            onOpenNotificationSettings = {},
-            onDismissError = {},
-            onExportClick = onExportClick,
-            onLanguageSelected = onLanguageSelected,
         )
     }
 

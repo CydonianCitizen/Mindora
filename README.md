@@ -18,7 +18,7 @@ Mindora is designed to operate strictly offline and respects user privacy by def
 
 ### Data Collection & Storage
 - **No Remote Telemetry**: The app does not create accounts, collect analytics, send crash reports, or transmit session and preference data to any server.
-- **Local Persistence**: Finalized practice sessions are stored locally on the device using Room. Weekly goals, reminder preferences, theme settings, and default timer configurations are stored locally in Preferences DataStore.
+- **Local Persistence**: Finalized practice sessions are stored locally on the device using Room. The weekly goal, whether the daily reminder is enabled, and the reminder time are stored locally in Preferences DataStore. There is no theme preference and no default-timer preference: the app follows the system light/dark setting, and the timer duration is chosen per session.
 - **No Cloud Sync or Backups**: Android cloud backup (`allowBackup = false`) and device-to-device data transfer exclusions are explicitly declared. Clearing app data or uninstalling Mindora permanently removes all local data.
 
 ### Permissions
@@ -32,7 +32,16 @@ This privacy description covers Mindora application behavior. It does not govern
 
 ## Third-Party Assets & Attribution
 
-No third-party meditation recordings, background music, nature sounds, custom fonts, or external images are included in production builds.
+No third-party meditation recordings, background music, nature sounds, or external images are included in production builds. Two open-source typefaces are bundled, and are documented below.
+
+### Bundled Fonts
+
+| File | Family & version | Author & source | License | Modifications |
+|---|---|---|---|---|
+| `app/src/main/res/font/fraunces.ttf` | Fraunces, variable, version 1.000 | The Fraunces Project Authors, <https://github.com/undercasetype/Fraunces> | SIL Open Font License 1.1, full text at `app/src/main/assets/licenses/Fraunces-OFL.txt` | None. Bundled as released upstream: variable axes, name records and glyph set are intact, with no subsetting or instancing. |
+| `app/src/main/res/font/karla.ttf` | Karla, variable, version 2.004 | The Karla Project Authors, <https://github.com/googlefonts/karla> | SIL Open Font License 1.1, full text at `app/src/main/assets/licenses/Karla-OFL.txt` | None. Bundled as released upstream (gftools build), with no subsetting or instancing. |
+
+The OFL requires that the license text travel with the fonts and that reserved font names are not applied to modified versions. Both license files ship inside the APK under `assets/licenses/`, and neither font is modified or renamed.
 
 ### Asset Policy & Guidelines
 `mindora_logo.svg` at the repository root is first-party original artwork created for Mindora. Android launcher icon resources are generated from this source file.
@@ -60,14 +69,15 @@ Any future third-party creative media added to the repository must comply with t
 Mindora follows modern Android development practices with a pragmatic single-module architecture organized by feature and core domain layers:
 
 ### Technology Stack
-- **Language**: Kotlin 2.1.0
+- **Language**: Kotlin 2.3.10
 - **UI Framework**: Jetpack Compose, Material 3, Navigation Compose
+- **Typography**: Fraunces and Karla, bundled as app font resources (see attribution above)
 - **Dependency Injection**: Hilt
 - **Asynchronous & Reactive**: Kotlin Coroutines & Flow
 - **Local Persistence**: Room Database (Finalized Sessions), DataStore Preferences (Settings)
 - **Media Playback**: AndroidX Media3 (ExoPlayer & MediaSessionService)
 - **Scheduling**: Android AlarmManager & NotificationManager APIs
-- **Build System**: Gradle 8.11.1, AGP 8.8.0, KSP, Kotlin Serialization
+- **Build System**: Gradle 9.4.1, AGP 9.2.1, KSP, Kotlin Serialization
 
 ### Package Layout
 ```text
@@ -79,7 +89,7 @@ com.cydoniancitizen.mindora/
 │   ├── guidedmeditation/  # Guided audio session playback
 │   ├── pathdetail/        # Mindfulness path steps & step detail viewer
 │   ├── history/           # Local session history logs & statistics
-│   └── settings/          # Local reminder settings & theme preferences
+│   └── settings/          # Weekly goal, reminder settings & data export
 ├── core/
 │   ├── content/           # Bundled JSON path content loader
 │   ├── database/          # Room database, entities, DAOs, & migrations
@@ -98,7 +108,7 @@ com.cydoniancitizen.mindora/
 ## Build & Test
 
 ### Environment Requirements
-- JDK 17
+- JDK 17 or newer (Java bytecode target is 17; Gradle 9.4.1 also runs on JDK 21)
 - Android SDK 36 (compileSdk = 36, targetSdk = 36, minSdk = 33)
 - Device or Emulator running Android 13 (API 33) or higher
 
@@ -132,6 +142,7 @@ Using the checked-in Gradle wrapper:
 - **Inexact Alarms**: Local reminder delivery uses inexact scheduling to preserve battery and may be delayed by Android Doze mode or power management policies.
 - **Guided Playback**: Runtime testing of guided audio playback requires approved bundled media, which is currently absent in the production catalogue.
 - **Store Publishing**: Public store release requires secure signing keys and a hosted privacy policy URL.
+- **Export Is Not a Restorable Backup**: Settings offers a JSON export written through the system document picker. It is a readable copy of preferences and finalized sessions; there is no import, so it cannot be loaded back into the app to restore a device. Session durations are exported in milliseconds, matching what Room stores, under export `format` version 2.
 
 ---
 
