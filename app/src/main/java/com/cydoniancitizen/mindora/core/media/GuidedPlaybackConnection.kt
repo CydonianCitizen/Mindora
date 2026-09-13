@@ -28,6 +28,12 @@ interface GuidedMeditationPlayback {
     val state: kotlinx.coroutines.flow.StateFlow<GuidedPlaybackState>
 
     fun start(stepId: String)
+
+    /**
+     * Starts a looping White Noise session for [soundId], finalizing itself after [duration]. Goes
+     * through the same service, session and command channel as [start]; only the LOAD payload differs.
+     */
+    fun startWhiteNoise(soundId: String, duration: Duration)
     fun play()
     fun pause()
     fun end()
@@ -48,9 +54,16 @@ class GuidedPlaybackConnection @Inject constructor(
         _state
 
     private var controller: MediaController? = null
-    private var pendingStepId: String? = null
+    private var pendingLoad: PendingLoad? = null
     private var progressJob: Job? = null
     private var released = false
+
+    /** A LOAD asked for before the controller connected, replayed once it does. */
+    private data class PendingLoad(
+        val contentId: String,
+        val kind: String,
+        val durationMillis: Long,
+    )
 
     private val controllerListener = object : MediaController.Listener {
         override fun onExtrasChanged(controller: MediaController, extras: Bundle) {
@@ -98,11 +111,9 @@ class GuidedPlaybackConnection @Inject constructor(
                     controller = connected
                     connected.addListener(playerListener)
                     publish(connected, connected.sessionExtras)
-                    pendingStepId?.let {
-                        pendingStepId = null
-                        send(GuidedPlaybackProtocol.LOAD, Bundle().apply {
-                            putString(GuidedPlaybackProtocol.STEP_ID, it)
-                        })
+                    pendingLoad?.let {
+                        pendingLoad = null
+                        sendLoad(it.contentId, it.kind, it.durationMillis)
                     }
                 } catch (_: ExecutionException) {
                     discardConnection()
@@ -122,17 +133,28 @@ class GuidedPlaybackConnection @Inject constructor(
         controllerFuture = null
     }
 
-    override fun start(stepId: String) {
-        val connected = controller
-        if (connected == null) {
-            pendingStepId = stepId
+    override fun start(stepId: String) =
+        load(stepId, GuidedPlaybackProtocol.KIND_GUIDED, durationMillis = 0L)
+
+    override fun startWhiteNoise(soundId: String, duration: Duration) =
+        load(soundId, GuidedPlaybackProtocol.KIND_WHITE_NOISE, duration.toMillis())
+
+    private fun load(contentId: String, kind: String, durationMillis: Long) {
+        if (controller == null) {
+            pendingLoad = PendingLoad(contentId, kind, durationMillis)
             // Without this a retry after a disconnection only parks the request: the first future
             // was already spent, so nothing would ever pick the step up again.
             connect()
             return
         }
+        sendLoad(contentId, kind, durationMillis)
+    }
+
+    private fun sendLoad(contentId: String, kind: String, durationMillis: Long) {
         send(GuidedPlaybackProtocol.LOAD, Bundle().apply {
-            putString(GuidedPlaybackProtocol.STEP_ID, stepId)
+            putString(GuidedPlaybackProtocol.STEP_ID, contentId)
+            putString(GuidedPlaybackProtocol.CONTENT_KIND, kind)
+            putLong(GuidedPlaybackProtocol.DURATION_MILLIS, durationMillis)
         })
     }
 
@@ -169,8 +191,8 @@ class GuidedPlaybackConnection @Inject constructor(
     }
 
     private fun publish(controller: MediaController, extras: Bundle) {
-        val phase = extras.getString(GuidedPlaybackProtocol.PHASE)
-            ?: GuidedPlaybackProtocol.PHASE_IDLE
+        val rawPhase = extras.getString(GuidedPlaybackProtocol.PHASE)
+        val phase = PlaybackPhase.entries.firstOrNull { it.name == rawPhase }
         val stepId = extras.getString(GuidedPlaybackProtocol.STEP_ID)
         val activeDuration = Duration.ofMillis(
             extras.getLong(GuidedPlaybackProtocol.ACTIVE_DURATION_MILLIS, 0L),
@@ -181,36 +203,8 @@ class GuidedPlaybackConnection @Inject constructor(
             .takeUnless { it == C.TIME_UNSET || it < 0L }
             ?.let(Duration::ofMillis)
 
-        _state.value = when (phase) {
-            GuidedPlaybackProtocol.PHASE_PREPARING -> stepId?.let {
-                GuidedPlaybackState.Preparing(it, position, duration)
-            } ?: GuidedPlaybackState.Idle
-
-            GuidedPlaybackProtocol.PHASE_PLAYING -> stepId?.let {
-                GuidedPlaybackState.Playing(it, position, duration)
-            } ?: GuidedPlaybackState.Idle
-
-            GuidedPlaybackProtocol.PHASE_PAUSED -> stepId?.let {
-                GuidedPlaybackState.Paused(it, position, duration)
-            } ?: GuidedPlaybackState.Idle
-
-            GuidedPlaybackProtocol.PHASE_SAVING -> stepId?.let {
-                GuidedPlaybackState.Saving(it, activeDuration)
-            } ?: GuidedPlaybackState.Idle
-
-            GuidedPlaybackProtocol.PHASE_FINISHED -> stepId?.let {
-                GuidedPlaybackState.Finished(
-                    stepId = it,
-                    status = extras.sessionStatus(),
-                    activeDuration = activeDuration,
-                )
-            } ?: GuidedPlaybackState.Idle
-
-            GuidedPlaybackProtocol.PHASE_SAVE_FAILED -> stepId?.let {
-                GuidedPlaybackState.SaveFailed(it, activeDuration)
-            } ?: GuidedPlaybackState.Idle
-
-            GuidedPlaybackProtocol.PHASE_PLAYBACK_FAILED -> GuidedPlaybackState.PlaybackFailed(
+        _state.value = when {
+            phase == PlaybackPhase.PLAYBACK_FAILED -> GuidedPlaybackState.PlaybackFailed(
                 stepId = stepId,
                 result = if (extras.getBoolean(GuidedPlaybackProtocol.INTERRUPTED_SAVED)) {
                     PlaybackFailureResult.INTERRUPTED_SAVED
@@ -219,8 +213,32 @@ class GuidedPlaybackConnection @Inject constructor(
                 },
                 activeDuration = activeDuration,
             )
+            stepId == null -> GuidedPlaybackState.Idle
+            else -> when (phase) {
+                PlaybackPhase.PREPARING ->
+                    GuidedPlaybackState.Preparing(stepId, position, duration)
 
-            else -> GuidedPlaybackState.Idle
+                PlaybackPhase.PLAYING ->
+                    GuidedPlaybackState.Playing(stepId, position, duration)
+
+                PlaybackPhase.PAUSED ->
+                    GuidedPlaybackState.Paused(stepId, position, duration)
+
+                PlaybackPhase.SAVING ->
+                    GuidedPlaybackState.Saving(stepId, activeDuration)
+
+                PlaybackPhase.FINISHED ->
+                    GuidedPlaybackState.Finished(
+                        stepId = stepId,
+                        status = extras.sessionStatus(),
+                        activeDuration = activeDuration,
+                    )
+
+                PlaybackPhase.SAVE_FAILED ->
+                    GuidedPlaybackState.SaveFailed(stepId, activeDuration)
+
+                else -> GuidedPlaybackState.Idle
+            }
         }
         updateProgressTicker()
     }
@@ -268,12 +286,9 @@ internal object GuidedPlaybackProtocol {
     const val SESSION_STATUS = "session_status"
     const val INTERRUPTED_SAVED = "interrupted_saved"
 
-    const val PHASE_IDLE = "idle"
-    const val PHASE_PREPARING = "preparing"
-    const val PHASE_PLAYING = "playing"
-    const val PHASE_PAUSED = "paused"
-    const val PHASE_SAVING = "saving"
-    const val PHASE_FINISHED = "finished"
-    const val PHASE_SAVE_FAILED = "save_failed"
-    const val PHASE_PLAYBACK_FAILED = "playback_failed"
+    // LOAD payload: which kind of content, and (White Noise only) how long before it finalizes.
+    const val CONTENT_KIND = "content_kind"
+    const val DURATION_MILLIS = "duration_millis"
+    const val KIND_GUIDED = "guided"
+    const val KIND_WHITE_NOISE = "white_noise"
 }

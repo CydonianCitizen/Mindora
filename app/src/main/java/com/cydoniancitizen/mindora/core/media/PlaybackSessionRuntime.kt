@@ -1,6 +1,5 @@
 package com.cydoniancitizen.mindora.core.media
 
-import com.cydoniancitizen.mindora.core.content.ResolvedGuidedMeditation
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
@@ -11,8 +10,28 @@ import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 
-internal class GuidedSessionRuntime(
-    val meditation: ResolvedGuidedMeditation,
+/**
+ * What the saved [MindfulnessSession] records about where a playback session came from.
+ *
+ * A guided meditation fills all of it from its catalogue path step; a White Noise session has no
+ * path, so [sourcePathId] is null and [sourceStepId] is the sound id.
+ */
+internal data class PlaybackSessionIdentity(
+    val type: MindfulnessSessionType,
+    val sourcePathId: String?,
+    val sourceStepId: String,
+    val plannedDuration: Duration,
+)
+
+/**
+ * Owns the one session a playback produces: it tracks active listening time, then builds and saves
+ * exactly one [MindfulnessSession], with retry and discard for a failed save.
+ *
+ * It is unaware of what is playing — guided meditation or White Noise — beyond the
+ * [PlaybackSessionIdentity] it is handed.
+ */
+internal class PlaybackSessionRuntime(
+    val identity: PlaybackSessionIdentity,
     val startedAt: Instant,
     timeSource: SessionTimeSource,
     private val repository: MindfulnessSessionRepository,
@@ -36,28 +55,28 @@ internal class GuidedSessionRuntime(
 
     suspend fun finalize(
         status: MindfulnessSessionStatus,
-    ): GuidedSaveResult {
-        if (finalizationStarted) return GuidedSaveResult.Ignored
+    ): PlaybackSaveResult {
+        if (finalizationStarted) return PlaybackSaveResult.Ignored
         finalizationStarted = true
         val duration = activeTime.finish()
-        if (duration <= Duration.ZERO) return GuidedSaveResult.NothingToSave
+        if (duration <= Duration.ZERO) return PlaybackSaveResult.NothingToSave
 
         val session = MindfulnessSession(
             id = idFactory(),
-            type = MindfulnessSessionType.GUIDED_MEDITATION,
+            type = identity.type,
             status = status,
-            sourcePathId = meditation.pathId,
-            sourceStepId = meditation.step.id,
+            sourcePathId = identity.sourcePathId,
+            sourceStepId = identity.sourceStepId,
             startedAt = startedAt,
             activeDuration = duration,
-            plannedDuration = Duration.ofSeconds(meditation.step.durationSeconds.toLong()),
+            plannedDuration = identity.plannedDuration,
         )
         return save(session)
     }
 
-    suspend fun retry(): GuidedSaveResult {
-        if (saveInProgress) return GuidedSaveResult.Ignored
-        val session = pendingSession ?: return GuidedSaveResult.Ignored
+    suspend fun retry(): PlaybackSaveResult {
+        if (saveInProgress) return PlaybackSaveResult.Ignored
+        val session = pendingSession ?: return PlaybackSaveResult.Ignored
         return save(session)
     }
 
@@ -67,27 +86,27 @@ internal class GuidedSessionRuntime(
         return true
     }
 
-    private suspend fun save(session: MindfulnessSession): GuidedSaveResult {
-        if (saveInProgress) return GuidedSaveResult.Ignored
+    private suspend fun save(session: MindfulnessSession): PlaybackSaveResult {
+        if (saveInProgress) return PlaybackSaveResult.Ignored
         saveInProgress = true
         pendingSession = session
         return try {
             repository.addSession(session)
             pendingSession = null
-            GuidedSaveResult.Saved(session)
+            PlaybackSaveResult.Saved(session)
         } catch (error: CancellationException) {
             throw error
         } catch (_: Exception) {
-            GuidedSaveResult.Failed(session)
+            PlaybackSaveResult.Failed(session)
         } finally {
             saveInProgress = false
         }
     }
 }
 
-internal sealed interface GuidedSaveResult {
-    data class Saved(val session: MindfulnessSession) : GuidedSaveResult
-    data class Failed(val session: MindfulnessSession) : GuidedSaveResult
-    data object NothingToSave : GuidedSaveResult
-    data object Ignored : GuidedSaveResult
+internal sealed interface PlaybackSaveResult {
+    data class Saved(val session: MindfulnessSession) : PlaybackSaveResult
+    data class Failed(val session: MindfulnessSession) : PlaybackSaveResult
+    data object NothingToSave : PlaybackSaveResult
+    data object Ignored : PlaybackSaveResult
 }

@@ -1,10 +1,13 @@
 package com.cydoniancitizen.mindora.feature.freemeditation
 
 import androidx.lifecycle.SavedStateHandle
+import com.cydoniancitizen.mindora.core.content.MeditationLibraryRepository
 import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
+import com.cydoniancitizen.mindora.core.content.model.LibraryMeditation
 import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
+import com.cydoniancitizen.mindora.core.session.data.validateForPersistence
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
@@ -348,6 +351,26 @@ class FreeMeditationViewModelTest {
     }
 
     @Test
+    fun `library meditation completed session satisfies the persistence contract`() = runTest {
+        val repository = ValidatingSessionRepository()
+        val time = FakeTimeSource(elapsedRealtimeMillis = 1_000)
+        val viewModel = viewModel(repository, time, stepId = "meditation-calm")
+        advanceUntilIdle()
+        viewModel.start()
+        time.elapsedRealtimeMillis += Duration.ofMinutes(5).toMillis()
+
+        viewModel.refreshTime()
+        runCurrent()
+
+        val session = repository.saved.single()
+        assertEquals(MindfulnessSessionStatus.COMPLETED, session.status)
+        assertEquals(MindfulnessSessionType.FREE_MEDITATION, session.type)
+        assertEquals(null, session.sourcePathId)
+        assertEquals("meditation-calm", session.sourceStepId)
+        assertTrue(viewModel.uiState.value is FreeMeditationUiState.Finished)
+    }
+
+    @Test
     fun `linked interrupted retry preserves identity and UUID`() = runTest {
         val repository = FakeSessionRepository(failAdds = true)
         val time = FakeTimeSource(elapsedRealtimeMillis = 1_000)
@@ -371,13 +394,15 @@ class FreeMeditationViewModelTest {
     }
 
     private fun viewModel(
-        repository: FakeSessionRepository = FakeSessionRepository(),
+        repository: MindfulnessSessionRepository = FakeSessionRepository(),
         time: FakeTimeSource = FakeTimeSource(),
         stepId: String? = null,
         contentRepository: MindfulnessContentRepository = FakeContentRepository(),
+        libraryRepository: MeditationLibraryRepository = FakeLibraryRepository(),
     ) = FreeMeditationViewModel(
         SavedStateHandle(stepId?.let { mapOf("stepId" to it) }.orEmpty()),
         contentRepository,
+        libraryRepository,
         repository,
         time,
     )
@@ -425,9 +450,31 @@ class FreeMeditationViewModelTest {
         }
     }
 
+    /**
+     * Stores sessions only after they clear [validateForPersistence], the same guard the Room
+     * repository runs. It keeps the ViewModel honest against the real persistence contract without
+     * standing up a database in the JVM suite; the full round trip is covered by
+     * RoomMindfulnessSessionRepositoryTest.
+     */
+    private class ValidatingSessionRepository : MindfulnessSessionRepository {
+        val saved = mutableListOf<MindfulnessSession>()
+
+        override fun observeSessions(): Flow<List<MindfulnessSession>> = flowOf(saved)
+
+        override suspend fun addSession(session: MindfulnessSession) {
+            validateForPersistence(session)
+            saved += session
+        }
+    }
+
     private class FakeContentRepository : MindfulnessContentRepository {
         override suspend fun getPaths(): List<MindfulnessPath> =
             TestMindfulnessCatalogue.paths
+    }
+
+    private class FakeLibraryRepository : MeditationLibraryRepository {
+        override suspend fun getMeditations(): List<LibraryMeditation> =
+            TestMindfulnessCatalogue.meditations
     }
 
     private companion object {

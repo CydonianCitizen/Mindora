@@ -39,6 +39,10 @@ object FreeMeditationDestination {
     fun createLinkedRoute(stepId: String): String = "$route/${Uri.encode(stepId)}"
 }
 
+object WhiteNoiseDestination {
+    const val route = "practice/white-noise"
+}
+
 object BreathingExerciseDestination {
     const val route = "practice/breathing"
     const val stepIdArgument = "stepId"
@@ -52,6 +56,18 @@ object GuidedMeditationDestination {
     const val route = "practice/guided/{$stepIdArgument}"
 
     fun createRoute(stepId: String): String = "practice/guided/${Uri.encode(stepId)}"
+}
+
+object LibraryDestination {
+    const val route = "practice/library"
+}
+
+object MeditationDetailDestination {
+    const val meditationIdArgument = "meditationId"
+    const val route = "practice/library/{$meditationIdArgument}"
+
+    fun createRoute(meditationId: String): String =
+        "practice/library/${Uri.encode(meditationId)}"
 }
 
 object PathDetailDestination {

@@ -2,26 +2,23 @@ package com.cydoniancitizen.mindora.feature.freemeditation
 
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -29,7 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,13 +62,16 @@ import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.ui.BreathEasing
 import com.cydoniancitizen.mindora.ui.MindoraTopAppBar
 import com.cydoniancitizen.mindora.ui.endlessMotionAllowed
+import com.cydoniancitizen.mindora.ui.session.EndSessionDialog
 import com.cydoniancitizen.mindora.ui.session.LinkedStepLoading
 import com.cydoniancitizen.mindora.ui.session.LinkedStepUnavailable
 import com.cydoniancitizen.mindora.ui.session.SessionHaptics
 import com.cydoniancitizen.mindora.ui.session.SessionHapticsViewModel
 import com.cydoniancitizen.mindora.ui.session.SessionSaveFailed
 import com.cydoniancitizen.mindora.ui.session.SessionSaving
-import com.cydoniancitizen.mindora.ui.session.SessionStateColumn
+import com.cydoniancitizen.mindora.ui.session.SessionStage
+import com.cydoniancitizen.mindora.ui.session.SessionStageMetrics
+import com.cydoniancitizen.mindora.ui.session.SessionFinished
 import com.cydoniancitizen.mindora.ui.session.meditationCycleProgress
 import com.cydoniancitizen.mindora.ui.session.meditationHapticWaveform
 import com.cydoniancitizen.mindora.ui.softGlow
@@ -192,8 +191,9 @@ internal fun FreeMeditationScreen(
                     breathing = ringBreathing,
                     elapsedMillis = elapsedMillis,
                     modifier = Modifier
-                        .size(RING_SIZE)
-                        .align(Alignment.Center),
+                        .align(Alignment.TopCenter)
+                        .padding(top = SessionStageMetrics.CircleTop)
+                        .size(SessionStageMetrics.MeditationRing),
                 )
             }
 
@@ -209,6 +209,10 @@ internal fun FreeMeditationScreen(
                 is FreeMeditationUiState.Running -> SessionContent(
                     remainingDuration = uiState.remainingDuration,
                     status = stringResource(R.string.running),
+                    stepCue = uiState.steps.stepCue(
+                        uiState.remainingDuration,
+                        uiState.plannedDuration,
+                    ),
                     primaryActionLabel = stringResource(R.string.pause),
                     onPrimaryAction = onPause,
                     onRequestEnd = onRequestEnd,
@@ -217,14 +221,25 @@ internal fun FreeMeditationScreen(
                 is FreeMeditationUiState.Paused -> SessionContent(
                     remainingDuration = uiState.remainingDuration,
                     status = stringResource(R.string.paused),
+                    stepCue = uiState.steps.stepCue(
+                        uiState.remainingDuration,
+                        uiState.plannedDuration,
+                    ),
                     primaryActionLabel = stringResource(R.string.resume),
                     onPrimaryAction = onResume,
                     onRequestEnd = onRequestEnd,
                 )
 
                 is FreeMeditationUiState.Saving -> SessionSaving()
-                is FreeMeditationUiState.Finished -> FinishedContent(
-                    state = uiState,
+                is FreeMeditationUiState.Finished -> SessionFinished(
+                    title = stringResource(
+                        if (uiState.savedSession.status == MindfulnessSessionStatus.COMPLETED) {
+                            R.string.session_completed_result
+                        } else {
+                            R.string.session_interrupted_result
+                        },
+                    ),
+                    activeDuration = formatRemaining(uiState.savedSession.activeDuration),
                     onDone = onDone,
                 )
 
@@ -241,8 +256,12 @@ internal fun FreeMeditationScreen(
         (uiState is FreeMeditationUiState.Paused && uiState.confirmEnd)
     ) {
         EndSessionDialog(
-            onDismiss = onDismissEnd,
+            title = stringResource(R.string.end_session_title),
+            message = stringResource(R.string.end_session_message),
+            confirmLabel = stringResource(R.string.end_session),
+            dismissLabel = stringResource(R.string.continue_session),
             onConfirm = onConfirmEnd,
+            onDismiss = onDismissEnd,
         )
     }
 }
@@ -300,27 +319,26 @@ internal fun MeditationRing(
                 scaleY = scale
             }
             .background(ring)
+            // Drawn from the first frame, including while the duration is being chosen: starting
+            // the session sets the orbit moving from where it already sits, instead of popping it
+            // into existence at the top of the ring.
             .drawBehind {
-                if (elapsed > 0L) {
-                    val angle = meditationCycleProgress(elapsed) * 2 * PI - PI / 2
-                    val radius = size.minDimension * 0.335f
-                    val position = center + Offset(cos(angle).toFloat(), sin(angle).toFloat()) * radius
-                    val glowRadius = size.minDimension * 0.09f
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            listOf(light.copy(alpha = 0.45f), light.copy(alpha = 0f)),
-                            center = position,
-                            radius = glowRadius,
-                        ),
-                        radius = glowRadius,
+                val angle = meditationCycleProgress(elapsed) * 2 * PI - PI / 2
+                val radius = size.minDimension * 0.335f
+                val position = center + Offset(cos(angle).toFloat(), sin(angle).toFloat()) * radius
+                val glowRadius = size.minDimension * 0.09f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(light.copy(alpha = 0.45f), light.copy(alpha = 0f)),
                         center = position,
-                    )
-                }
+                        radius = glowRadius,
+                    ),
+                    radius = glowRadius,
+                    center = position,
+                )
             },
     )
 }
-
-internal val RING_SIZE = 320.dp
 
 /**
  * Rest is exactly the size the still ring is drawn at, which is what makes the start invisible:
@@ -335,6 +353,9 @@ private const val RING_REST = 1f
  */
 private const val RING_SWELL = 1.32f
 private const val RING_ALPHA = 0.5f
+
+/** Two lines of body text: most cues fit, and the rest grow downwards from a steady baseline. */
+private val STEP_CUE_MIN_HEIGHT = 56.dp
 
 @Composable
 internal fun MeditationDurationDisplay(
@@ -401,61 +422,52 @@ private fun SetupContent(
     onSelectDuration: (Duration) -> Unit,
     onStart: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 480.dp)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            val linkedContent = state.linkedContent
-            val titleText = linkedContent?.title ?: stringResource(R.string.free_meditation)
+    val linkedContent = state.linkedContent
+    val durationMinutes = state.selectedDuration.toMinutes().toInt()
+    val formattedDurationText = pluralStringResource(
+        R.plurals.duration_minutes,
+        durationMinutes,
+        state.selectedDuration.toMinutes(),
+    )
+    val startAccessibilityText = stringResource(
+        R.string.start_session_accessibility,
+        formattedDurationText,
+    )
 
+    SessionStage(
+        // The countdown sits inside the ring, which is painted behind this slot: the duration being
+        // chosen and the time left occupy the same place, so starting changes the number without
+        // moving it.
+        circle = { RingSlot { MeditationDurationDisplay(duration = state.selectedDuration) } },
+        above = {
             Text(
-                text = titleText,
-                modifier = Modifier
-                    .semantics { heading() }
-                    .padding(bottom = 8.dp),
+                text = linkedContent?.title ?: stringResource(R.string.free_meditation),
+                modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-
             if (linkedContent != null) {
                 Text(
                     text = linkedContent.description,
-                    modifier = Modifier.padding(bottom = 16.dp),
+                    modifier = Modifier.padding(top = 8.dp),
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                Spacer(modifier = Modifier.height(8.dp))
             }
-
-            MeditationDurationDisplay(
-                duration = state.selectedDuration,
-                modifier = Modifier.padding(vertical = 12.dp),
-            )
-
+        },
+        below = {
             Text(
                 text = stringResource(R.string.duration),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 20.dp),
             )
-
             if (linkedContent == null) {
                 FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 32.dp),
+                        .padding(top = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -467,25 +479,12 @@ private fun SetupContent(
                         )
                     }
                 }
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
             }
-
-            val durationMinutes = state.selectedDuration.toMinutes().toInt()
-            val formattedDurationText = pluralStringResource(
-                R.plurals.duration_minutes,
-                durationMinutes,
-                state.selectedDuration.toMinutes(),
-            )
-            val startAccessibilityText = stringResource(
-                R.string.start_session_accessibility,
-                formattedDurationText,
-            )
-
             Button(
                 onClick = onStart,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = 24.dp)
                     .height(56.dp)
                     .semantics { contentDescription = startAccessibilityText },
                 shape = CircleShape,
@@ -500,7 +499,18 @@ private fun SetupContent(
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
-        }
+        },
+    )
+}
+
+/** The stage's circle slot here: the ring is painted behind it, the number stands inside it. */
+@Composable
+private fun RingSlot(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier.size(SessionStageMetrics.MeditationRing),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
     }
 }
 
@@ -508,6 +518,7 @@ private fun SetupContent(
 private fun SessionContent(
     remainingDuration: Duration,
     status: String,
+    stepCue: String?,
     primaryActionLabel: String,
     onPrimaryAction: () -> Unit,
     onRequestEnd: () -> Unit,
@@ -517,92 +528,56 @@ private fun SessionContent(
         R.string.countdown_accessibility,
         countdown,
     )
-    SessionStateColumn {
-        Text(
-            text = status,
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Text(
-            text = countdown,
-            modifier = Modifier
-                .padding(vertical = 32.dp)
-                .semantics { contentDescription = countdownDescription },
-            style = MaterialTheme.typography.displayLarge.tabularNumerals(),
-        )
-        Button(
-            onClick = onPrimaryAction,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(primaryActionLabel)
-        }
-        OutlinedButton(
-            onClick = onRequestEnd,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        ) {
-            Text(stringResource(R.string.end))
-        }
-    }
-}
-
-@Composable
-private fun FinishedContent(
-    state: FreeMeditationUiState.Finished,
-    onDone: () -> Unit,
-) {
-    val result = when (state.savedSession.status) {
-        MindfulnessSessionStatus.COMPLETED -> stringResource(R.string.session_completed_result)
-        MindfulnessSessionStatus.INTERRUPTED -> stringResource(R.string.session_interrupted_result)
-    }
-    SessionStateColumn {
-        Text(
-            text = result,
-            modifier = Modifier.semantics { heading() },
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Text(
-            text = stringResource(
-                R.string.active_duration_summary,
-                formatRemaining(state.savedSession.activeDuration),
-            ),
-            modifier = Modifier.padding(top = 12.dp),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Text(
-            text = stringResource(R.string.session_saved),
-            modifier = Modifier.padding(top = 8.dp),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Button(
-            onClick = onDone,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 32.dp),
-        ) {
-            Text(stringResource(R.string.done))
-        }
-    }
-}
-
-@Composable
-private fun EndSessionDialog(
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.end_session_title)) },
-        text = { Text(stringResource(R.string.end_session_message)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.end_session))
+    SessionStage(
+        circle = {
+            RingSlot {
+                Text(
+                    text = countdown,
+                    modifier = Modifier.semantics { contentDescription = countdownDescription },
+                    style = MaterialTheme.typography.displayLarge.tabularNumerals(),
+                )
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.continue_session))
+        above = {
+            Text(
+                text = status,
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
+        below = {
+            if (stepCue != null) {
+                // One instruction at a time, faded rather than swapped, so the change is noticed
+                // without pulling attention. The slot keeps its height so the buttons below never
+                // move as a shorter or longer cue takes over.
+                Crossfade(
+                    targetState = stepCue,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = STEP_CUE_MIN_HEIGHT)
+                        .padding(bottom = 24.dp),
+                    label = "step cue",
+                ) { cue ->
+                    Text(
+                        text = cue,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Button(
+                onClick = onPrimaryAction,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(primaryActionLabel)
+            }
+            OutlinedButton(
+                onClick = onRequestEnd,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+            ) {
+                Text(stringResource(R.string.end))
             }
         },
     )

@@ -109,7 +109,6 @@ class GuidedMeditationScreenTest {
             title = "Guided title",
             description = "Guided description",
             plannedDuration = Duration.ofMinutes(5),
-            audioAsset = "audio/test.mp3",
         )
     }
 }

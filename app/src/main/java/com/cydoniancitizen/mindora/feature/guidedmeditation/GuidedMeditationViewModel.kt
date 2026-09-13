@@ -99,7 +99,10 @@ class GuidedMeditationViewModel @Inject constructor(
             ContentResolution.Failed -> return GuidedMeditationUiState.ContentFailed
             is ContentResolution.Available -> contentResolution.meditation.toDetails()
         }
-        fun matches(runtimeStepId: String?): Boolean = runtimeStepId == meditation.stepId
+        val owner = (playbackState as? GuidedPlaybackState.ForContent)?.stepId
+        if (owner != null && owner != meditation.stepId) {
+            return GuidedMeditationUiState.Ready(meditation)
+        }
         fun total(mediaDuration: Duration?): Duration = mediaDuration ?: meditation.plannedDuration
 
         return when (playbackState) {
@@ -113,65 +116,42 @@ class GuidedMeditationViewModel @Inject constructor(
                 activeDuration = Duration.ZERO,
             )
 
-            is GuidedPlaybackState.Preparing -> if (matches(playbackState.stepId)) {
+            is GuidedPlaybackState.Preparing ->
                 GuidedMeditationUiState.Preparing(meditation)
-            } else {
-                GuidedMeditationUiState.Ready(meditation)
-            }
 
-            is GuidedPlaybackState.Playing -> if (matches(playbackState.stepId)) {
+            is GuidedPlaybackState.Playing ->
                 GuidedMeditationUiState.Playing(
                     meditation,
                     playbackState.position,
                     total(playbackState.mediaDuration),
                 )
-            } else {
-                GuidedMeditationUiState.Ready(meditation)
-            }
 
-            is GuidedPlaybackState.Paused -> if (matches(playbackState.stepId)) {
+            is GuidedPlaybackState.Paused ->
                 GuidedMeditationUiState.Paused(
                     meditation,
                     playbackState.position,
                     total(playbackState.mediaDuration),
                 )
-            } else {
-                GuidedMeditationUiState.Ready(meditation)
-            }
 
-            is GuidedPlaybackState.Saving -> if (matches(playbackState.stepId)) {
+            is GuidedPlaybackState.Saving ->
                 GuidedMeditationUiState.Saving(meditation, playbackState.activeDuration)
-            } else {
-                GuidedMeditationUiState.Ready(meditation)
-            }
 
-            is GuidedPlaybackState.Finished -> if (matches(playbackState.stepId)) {
+            is GuidedPlaybackState.Finished ->
                 GuidedMeditationUiState.Finished(
                     meditation,
                     playbackState.status,
                     playbackState.activeDuration,
                 )
-            } else {
-                GuidedMeditationUiState.Ready(meditation)
-            }
 
-            is GuidedPlaybackState.SaveFailed -> if (matches(playbackState.stepId)) {
+            is GuidedPlaybackState.SaveFailed ->
                 GuidedMeditationUiState.SaveFailed(meditation, playbackState.activeDuration)
-            } else {
-                GuidedMeditationUiState.Ready(meditation)
-            }
 
-            is GuidedPlaybackState.PlaybackFailed -> if (
-                playbackState.stepId == null || matches(playbackState.stepId)
-            ) {
+            is GuidedPlaybackState.PlaybackFailed ->
                 GuidedMeditationUiState.PlaybackFailed(
                     meditation,
                     playbackState.result,
                     playbackState.activeDuration,
                 )
-            } else {
-                GuidedMeditationUiState.Ready(meditation)
-            }
         }
     }
 

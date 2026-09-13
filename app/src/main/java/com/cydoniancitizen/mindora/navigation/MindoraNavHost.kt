@@ -20,9 +20,12 @@ import com.cydoniancitizen.mindora.feature.breathing.BreathingExerciseScreen
 import com.cydoniancitizen.mindora.feature.freemeditation.FreeMeditationScreen
 import com.cydoniancitizen.mindora.feature.guidedmeditation.GuidedMeditationScreen
 import com.cydoniancitizen.mindora.feature.history.HistoryScreen
+import com.cydoniancitizen.mindora.feature.library.LibraryScreen
+import com.cydoniancitizen.mindora.feature.library.MeditationDetailScreen
 import com.cydoniancitizen.mindora.feature.pathdetail.PathDetailScreen
 import com.cydoniancitizen.mindora.feature.practice.PracticeScreen
 import com.cydoniancitizen.mindora.feature.settings.SettingsScreen
+import com.cydoniancitizen.mindora.feature.whitenoise.WhiteNoiseScreen
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -54,11 +57,17 @@ fun MindoraNavHost(
                             onFreeMeditationClick = {
                                 navController.navigate(FreeMeditationDestination.route)
                             },
+                            onWhiteNoiseClick = {
+                                navController.navigate(WhiteNoiseDestination.route)
+                            },
                             onBreathingExerciseClick = {
                                 navController.navigate(BreathingExerciseDestination.route)
                             },
                             onPathClick = { pathId ->
                                 navController.navigate(PathDetailDestination.createRoute(pathId))
+                            },
+                            onLibraryClick = {
+                                navController.navigate(LibraryDestination.route)
                             },
                         )
                     }
@@ -111,6 +120,17 @@ fun MindoraNavHost(
                     }
                 }
                 composable(
+                    route = WhiteNoiseDestination.route,
+                    enterTransition = { containerEnter() },
+                    exitTransition = { containerExit() },
+                    popEnterTransition = { containerEnter() },
+                    popExitTransition = { containerExit() },
+                ) {
+                    ContainerTransformHost(ContainerKeys.WHITE_NOISE) {
+                        WhiteNoiseScreen(onNavigateBack = navController::navigateUp)
+                    }
+                }
+                composable(
                     route = FreeMeditationDestination.linkedRoute,
                     arguments = listOf(
                         navArgument(FreeMeditationDestination.stepIdArgument) {
@@ -139,6 +159,43 @@ fun MindoraNavHost(
                     ),
                 ) {
                     GuidedMeditationScreen(onNavigateBack = navController::navigateUp)
+                }
+                composable(
+                    route = LibraryDestination.route,
+                    enterTransition = { containerEnter() },
+                    exitTransition = { containerExit() },
+                    popEnterTransition = { containerEnter() },
+                    popExitTransition = { containerExit() },
+                ) {
+                    ContainerTransformHost(ContainerKeys.LIBRARY) {
+                        LibraryScreen(
+                            onNavigateBack = navController::navigateUp,
+                            onMeditationClick = { meditationId ->
+                                navController.navigate(
+                                    MeditationDetailDestination.createRoute(meditationId),
+                                )
+                            },
+                        )
+                    }
+                }
+                composable(
+                    route = MeditationDetailDestination.route,
+                    arguments = listOf(
+                        navArgument(MeditationDetailDestination.meditationIdArgument) {
+                            type = NavType.StringType
+                        },
+                    ),
+                ) {
+                    MeditationDetailScreen(
+                        onNavigateBack = navController::navigateUp,
+                        // No approved audio is bundled yet, so a library practice runs on the
+                        // timer the free meditation screen already provides.
+                        onStartPractice = { meditationId ->
+                            navController.navigate(
+                                FreeMeditationDestination.createLinkedRoute(meditationId),
+                            )
+                        },
+                    )
                 }
                 composable(MindoraDestination.HISTORY.route) {
                     HistoryScreen(

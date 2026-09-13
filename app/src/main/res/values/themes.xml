@@ -1,9 +1,7 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Mindora" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<resources>
+    <!-- Compose themes the app; this only covers the window and the platform time picker. -->
+    <style name="Theme.Mindora" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- primaryLight in ui/theme/Color.kt -->
+        <item name="android:colorAccent">#4C662B</item>
     </style>
-
-    <style name="Theme.Mindora" parent="Base.Theme.Mindora" />
 </resources>

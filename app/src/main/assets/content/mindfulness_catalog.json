@@ -1,4 +1,1566 @@
 {
   "schemaVersion": 1,
-  "paths": []
+  "paths": [],
+  "meditations": [
+    {
+      "id": "meditation-breath-awareness-calm",
+      "title": {
+        "en": "Breathing to find calm",
+        "it": "Respiro per ritrovare calma"
+      },
+      "description": {
+        "en": "A short practice to bring attention to the natural breath and let its rhythm settle on its own.",
+        "it": "Una pratica breve per portare attenzione al respiro naturale e lasciare che il ritmo trovi da sé il suo passo."
+      },
+      "technique": {
+        "id": "breath-awareness",
+        "label": {
+          "en": "Breath Awareness",
+          "it": "Breath Awareness"
+        }
+      },
+      "category": {
+        "id": "breath",
+        "label": {
+          "en": "Breath",
+          "it": "Respiro"
+        }
+      },
+      "goal": {
+        "id": "calm",
+        "label": {
+          "en": "Calm",
+          "it": "Calma"
+        }
+      },
+      "durationMinutes": 5,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Settle comfortably, sitting or lying down.",
+            "it": "Sistemati comodamente, seduto o sdraiato."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice where the body touches the chair, the floor or the bed.",
+            "it": "Nota i punti in cui il corpo tocca la sedia, il pavimento o il letto."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the breath as it is, without changing it.",
+            "it": "Porta l'attenzione al respiro così com'è, senza cambiarlo."
+          }
+        },
+        {
+          "text": {
+            "en": "Choose an anchor: the nostrils, the chest or the belly.",
+            "it": "Scegli un'ancora: le narici, il petto o l'addome."
+          }
+        },
+        {
+          "text": {
+            "en": "When a distraction arrives, recognise it.",
+            "it": "Quando arriva una distrazione, riconoscila."
+          }
+        },
+        {
+          "text": {
+            "en": "Come back to the breath, without judging yourself.",
+            "it": "Torna al respiro, senza giudicarti."
+          }
+        },
+        {
+          "text": {
+            "en": "Widen the attention to the whole body breathing.",
+            "it": "Allarga l'attenzione a tutto il corpo che respira."
+          }
+        },
+        {
+          "text": {
+            "en": "Close slowly, without hurrying.",
+            "it": "Concludi lentamente, senza fretta."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "breath",
+          "it": "respiro"
+        },
+        {
+          "en": "calm",
+          "it": "calma"
+        },
+        {
+          "en": "beginners",
+          "it": "principianti"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-breath-awareness-focus",
+      "title": {
+        "en": "Breath and concentration",
+        "it": "Respiro e concentrazione"
+      },
+      "description": {
+        "en": "A practice to train attention on one precise point of the breath, and to bring it back there each time it drifts.",
+        "it": "Una pratica per allenare l'attenzione su un punto preciso del respiro e riportarla lì ogni volta che si allontana."
+      },
+      "technique": {
+        "id": "breath-awareness",
+        "label": {
+          "en": "Breath Awareness",
+          "it": "Breath Awareness"
+        }
+      },
+      "category": {
+        "id": "breath",
+        "label": {
+          "en": "Breath",
+          "it": "Respiro"
+        }
+      },
+      "goal": {
+        "id": "focus",
+        "label": {
+          "en": "Focus",
+          "it": "Focus"
+        }
+      },
+      "durationMinutes": 10,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Settle your posture: back supported, shoulders free.",
+            "it": "Stabilizza la postura: schiena sostenuta, spalle libere."
+          }
+        },
+        {
+          "text": {
+            "en": "Find one precise point where you feel the breath.",
+            "it": "Individua un punto preciso in cui senti il respiro."
+          }
+        },
+        {
+          "text": {
+            "en": "Follow the in-breath from beginning to end.",
+            "it": "Segui l'inspirazione dall'inizio alla fine."
+          }
+        },
+        {
+          "text": {
+            "en": "Follow the out-breath from beginning to end.",
+            "it": "Segui l'espirazione dall'inizio alla fine."
+          }
+        },
+        {
+          "text": {
+            "en": "When you notice you have drifted, recognise it.",
+            "it": "Quando ti accorgi di esserti distratto, riconoscilo."
+          }
+        },
+        {
+          "text": {
+            "en": "Return to exactly the same point.",
+            "it": "Torna esattamente allo stesso punto."
+          }
+        },
+        {
+          "text": {
+            "en": "Let the instructions become sparser.",
+            "it": "Lascia che le indicazioni si diradino."
+          }
+        },
+        {
+          "text": {
+            "en": "Finish with a period of silence.",
+            "it": "Termina con un periodo di silenzio."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "breath",
+          "it": "respiro"
+        },
+        {
+          "en": "concentration",
+          "it": "concentrazione"
+        },
+        {
+          "en": "attention",
+          "it": "attenzione"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-breath-awareness-morning",
+      "title": {
+        "en": "Morning presence",
+        "it": "Presenza del mattino"
+      },
+      "description": {
+        "en": "A short practice to begin the day by noticing the body, the breath and the energy you have available.",
+        "it": "Una pratica breve per iniziare la giornata osservando il corpo, il respiro e l'energia che hai a disposizione."
+      },
+      "technique": {
+        "id": "breath-awareness",
+        "label": {
+          "en": "Breath Awareness",
+          "it": "Breath Awareness"
+        }
+      },
+      "category": {
+        "id": "breath",
+        "label": {
+          "en": "Breath",
+          "it": "Respiro"
+        }
+      },
+      "goal": {
+        "id": "morning",
+        "label": {
+          "en": "Morning",
+          "it": "Mattino"
+        }
+      },
+      "durationMinutes": 5,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Sense the body as it wakes.",
+            "it": "Percepisci il corpo appena sveglio."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice a few natural breaths, without guiding them.",
+            "it": "Nota qualche respiro naturale, senza guidarlo."
+          }
+        },
+        {
+          "text": {
+            "en": "Feel the movement in the chest or the belly.",
+            "it": "Senti il movimento nel petto o nell'addome."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice your level of energy, whatever it is.",
+            "it": "Osserva il tuo livello di energia, qualunque sia."
+          }
+        },
+        {
+          "text": {
+            "en": "Come back to the breath.",
+            "it": "Torna al respiro."
+          }
+        },
+        {
+          "text": {
+            "en": "Widen awareness to the whole body.",
+            "it": "Allarga la consapevolezza a tutto il corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "Set a simple intention for the day.",
+            "it": "Formula una semplice intenzione per la giornata."
+          }
+        },
+        {
+          "text": {
+            "en": "Close, and take up your own pace again.",
+            "it": "Concludi e riprendi il tuo ritmo con calma."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "breath",
+          "it": "respiro"
+        },
+        {
+          "en": "morning",
+          "it": "mattino"
+        },
+        {
+          "en": "intention",
+          "it": "intenzione"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-body-scan-awareness",
+      "title": {
+        "en": "Explore the body",
+        "it": "Esplora il corpo"
+      },
+      "description": {
+        "en": "A slow journey through the body, to notice the sensations you find without having to change them.",
+        "it": "Un percorso lento attraverso il corpo, per osservare le sensazioni che trovi senza doverle modificare."
+      },
+      "technique": {
+        "id": "body-scan",
+        "label": {
+          "en": "Body Scan",
+          "it": "Body Scan"
+        }
+      },
+      "category": {
+        "id": "body",
+        "label": {
+          "en": "Body",
+          "it": "Corpo"
+        }
+      },
+      "goal": {
+        "id": "body-awareness",
+        "label": {
+          "en": "Body awareness",
+          "it": "Consapevolezza corporea"
+        }
+      },
+      "durationMinutes": 15,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Bring attention to the feet and the sensations you find there.",
+            "it": "Porta l'attenzione ai piedi e alle sensazioni che trovi lì."
+          }
+        },
+        {
+          "text": {
+            "en": "Move slowly up through the legs.",
+            "it": "Sali lentamente lungo le gambe."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the hips.",
+            "it": "Osserva il bacino."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the belly.",
+            "it": "Porta l'attenzione all'addome."
+          }
+        },
+        {
+          "text": {
+            "en": "Travel up the back, from the base upwards.",
+            "it": "Percorri la schiena, dal basso verso l'alto."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the chest and its movement.",
+            "it": "Osserva il petto e il suo movimento."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the hands.",
+            "it": "Porta l'attenzione alle mani."
+          }
+        },
+        {
+          "text": {
+            "en": "Move up along the arms.",
+            "it": "Sali lungo le braccia."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the shoulders.",
+            "it": "Osserva le spalle."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the neck.",
+            "it": "Porta l'attenzione al collo."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the face: jaw, eyes, forehead.",
+            "it": "Osserva il volto: mascella, occhi, fronte."
+          }
+        },
+        {
+          "text": {
+            "en": "Let attention widen to the whole body.",
+            "it": "Lascia che l'attenzione si allarghi al corpo intero."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "body",
+          "it": "corpo"
+        },
+        {
+          "en": "awareness",
+          "it": "consapevolezza"
+        },
+        {
+          "en": "beginners",
+          "it": "principianti"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-body-scan-tension",
+      "title": {
+        "en": "Noticing tension",
+        "it": "Osservare la tensione"
+      },
+      "description": {
+        "en": "A practice to bring attention to the places that hold tension, observing them before any change.",
+        "it": "Una pratica per portare attenzione alle zone che trattengono tensione, osservandole prima di qualsiasi cambiamento."
+      },
+      "technique": {
+        "id": "body-scan",
+        "label": {
+          "en": "Body Scan",
+          "it": "Body Scan"
+        }
+      },
+      "category": {
+        "id": "body",
+        "label": {
+          "en": "Body",
+          "it": "Corpo"
+        }
+      },
+      "goal": {
+        "id": "physical-tension",
+        "label": {
+          "en": "Physical tension",
+          "it": "Tensione fisica"
+        }
+      },
+      "durationMinutes": 10,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Notice the breath as it is.",
+            "it": "Nota il respiro così com'è."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the jaw.",
+            "it": "Porta l'attenzione alla mascella."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the face.",
+            "it": "Osserva il volto."
+          }
+        },
+        {
+          "text": {
+            "en": "Move attention to the neck.",
+            "it": "Sposta l'attenzione al collo."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the shoulders.",
+            "it": "Osserva le spalle."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the chest.",
+            "it": "Porta l'attenzione al petto."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the belly.",
+            "it": "Osserva l'addome."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the hands.",
+            "it": "Porta l'attenzione alle mani."
+          }
+        },
+        {
+          "text": {
+            "en": "Return to where you found most tension and stay there a moment.",
+            "it": "Torna dove hai trovato più tensione e restaci un momento."
+          }
+        },
+        {
+          "text": {
+            "en": "Widen attention to the whole body.",
+            "it": "Allarga l'attenzione al corpo intero."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "body",
+          "it": "corpo"
+        },
+        {
+          "en": "tension",
+          "it": "tensione"
+        },
+        {
+          "en": "observation",
+          "it": "osservazione"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-body-scan-evening",
+      "title": {
+        "en": "Evening body scan",
+        "it": "Body Scan della sera"
+      },
+      "description": {
+        "en": "A slow scan of the body that accompanies the end of the day, with a rhythm that thins out as it goes.",
+        "it": "Una scansione lenta del corpo che accompagna la fine della giornata, con un ritmo che si dirada man mano."
+      },
+      "technique": {
+        "id": "body-scan",
+        "label": {
+          "en": "Body Scan",
+          "it": "Body Scan"
+        }
+      },
+      "category": {
+        "id": "body",
+        "label": {
+          "en": "Body",
+          "it": "Corpo"
+        }
+      },
+      "goal": {
+        "id": "evening",
+        "label": {
+          "en": "Evening",
+          "it": "Sera"
+        }
+      },
+      "durationMinutes": 15,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Feel the weight of the body where it rests.",
+            "it": "Senti il peso del corpo appoggiato."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the breath, without guiding it.",
+            "it": "Nota il respiro, senza guidarlo."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the feet.",
+            "it": "Porta l'attenzione ai piedi."
+          }
+        },
+        {
+          "text": {
+            "en": "Move slowly up the legs and the hips.",
+            "it": "Sali lentamente lungo le gambe e il bacino."
+          }
+        },
+        {
+          "text": {
+            "en": "Cross the belly, the back and the chest.",
+            "it": "Attraversa addome, schiena e petto."
+          }
+        },
+        {
+          "text": {
+            "en": "Continue with the hands, the arms and the shoulders.",
+            "it": "Prosegui con mani, braccia e spalle."
+          }
+        },
+        {
+          "text": {
+            "en": "Arrive at the neck, the face, the head.",
+            "it": "Arriva al collo, al volto, alla testa."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the places still active and leave them room.",
+            "it": "Nota le zone ancora attive e lascia loro spazio."
+          }
+        },
+        {
+          "text": {
+            "en": "Stay with the whole body as the instructions thin out.",
+            "it": "Resta con il corpo intero mentre le indicazioni si diradano."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "body",
+          "it": "corpo"
+        },
+        {
+          "en": "evening",
+          "it": "sera"
+        },
+        {
+          "en": "slowing down",
+          "it": "rallentare"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-loving-kindness-self",
+      "title": {
+        "en": "Kindness towards yourself",
+        "it": "Gentilezza verso te stesso"
+      },
+      "description": {
+        "en": "A practice of kindness turned towards you, with a few simple phrases repeated slowly.",
+        "it": "Una pratica di gentilezza rivolta a te, con poche frasi semplici ripetute lentamente."
+      },
+      "technique": {
+        "id": "loving-kindness",
+        "label": {
+          "en": "Loving-Kindness / Metta",
+          "it": "Loving-Kindness / Metta"
+        }
+      },
+      "category": {
+        "id": "compassion",
+        "label": {
+          "en": "Compassion",
+          "it": "Compassione"
+        }
+      },
+      "goal": {
+        "id": "self-compassion",
+        "label": {
+          "en": "Self-compassion",
+          "it": "Autocompassione"
+        }
+      },
+      "durationMinutes": 10,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Settle comfortably and notice a few breaths.",
+            "it": "Sistemati comodamente e nota qualche respiro."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the chest, or to the centre of the body.",
+            "it": "Porta l'attenzione al petto, o al centro del corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "Call to mind an image of yourself, as you are today.",
+            "it": "Richiama un'immagine di te, così come sei oggi."
+          }
+        },
+        {
+          "text": {
+            "en": "Repeat slowly: may I be safe.",
+            "it": "Ripeti lentamente: che io possa essere al sicuro."
+          }
+        },
+        {
+          "text": {
+            "en": "May I be well.",
+            "it": "Che io possa stare bene."
+          }
+        },
+        {
+          "text": {
+            "en": "May I treat myself with kindness.",
+            "it": "Che io possa trattarmi con gentilezza."
+          }
+        },
+        {
+          "text": {
+            "en": "May I live with more ease.",
+            "it": "Che io possa vivere con maggiore serenità."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice what arrives, even if it is little: there is no feeling to produce.",
+            "it": "Osserva ciò che arriva, anche se è poco: non c'è un'emozione da produrre."
+          }
+        },
+        {
+          "text": {
+            "en": "Return to the breath and close.",
+            "it": "Torna al respiro e concludi."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "compassion",
+          "it": "compassione"
+        },
+        {
+          "en": "self-compassion",
+          "it": "autocompassione"
+        },
+        {
+          "en": "metta",
+          "it": "metta"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-loving-kindness-relationships",
+      "title": {
+        "en": "Growing connection",
+        "it": "Coltivare connessione"
+      },
+      "description": {
+        "en": "A practice that extends kindness by degrees: from you to someone close, to someone neutral, to a wider group.",
+        "it": "Una pratica che estende la gentilezza per gradi: da te a una persona cara, a una persona neutrale, a un gruppo più ampio."
+      },
+      "technique": {
+        "id": "loving-kindness",
+        "label": {
+          "en": "Loving-Kindness / Metta",
+          "it": "Loving-Kindness / Metta"
+        }
+      },
+      "category": {
+        "id": "compassion",
+        "label": {
+          "en": "Compassion",
+          "it": "Compassione"
+        }
+      },
+      "goal": {
+        "id": "relationships",
+        "label": {
+          "en": "Relationships",
+          "it": "Relazioni"
+        }
+      },
+      "durationMinutes": 12,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Settle and notice a few breaths.",
+            "it": "Sistemati e nota qualche respiro."
+          }
+        },
+        {
+          "text": {
+            "en": "Offer yourself a few phrases of kindness.",
+            "it": "Rivolgi a te stesso poche frasi di gentilezza."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring to mind someone close to you.",
+            "it": "Porta alla mente una persona cara."
+          }
+        },
+        {
+          "text": {
+            "en": "Offer them the same phrases.",
+            "it": "Rivolgi a lei le stesse frasi."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring to mind someone neutral, whom you barely know.",
+            "it": "Porta alla mente una persona neutrale, che conosci appena."
+          }
+        },
+        {
+          "text": {
+            "en": "Offer them the same phrases too.",
+            "it": "Rivolgi anche a lei le stesse frasi."
+          }
+        },
+        {
+          "text": {
+            "en": "Widen to a larger group of people.",
+            "it": "Allarga a un gruppo più ampio di persone."
+          }
+        },
+        {
+          "text": {
+            "en": "Come back to yourself and close.",
+            "it": "Torna a te stesso e concludi."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "compassion",
+          "it": "compassione"
+        },
+        {
+          "en": "relationships",
+          "it": "relazioni"
+        },
+        {
+          "en": "metta",
+          "it": "metta"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-loving-kindness-anger",
+      "title": {
+        "en": "Staying present with anger",
+        "it": "Restare presenti con la rabbia"
+      },
+      "description": {
+        "en": "A practice for staying present when there is anger, keeping kindness as a place to lean on.",
+        "it": "Una pratica per restare presenti quando c'è rabbia, tenendo la gentilezza come punto di appoggio."
+      },
+      "technique": {
+        "id": "loving-kindness",
+        "label": {
+          "en": "Loving-Kindness / Metta",
+          "it": "Loving-Kindness / Metta"
+        }
+      },
+      "category": {
+        "id": "compassion",
+        "label": {
+          "en": "Compassion",
+          "it": "Compassione"
+        }
+      },
+      "goal": {
+        "id": "anger",
+        "label": {
+          "en": "Anger",
+          "it": "Rabbia"
+        }
+      },
+      "durationMinutes": 15,
+      "level": "intermediate",
+      "steps": [
+        {
+          "text": {
+            "en": "Settle and feel where the body makes contact.",
+            "it": "Sistemati e senti i punti di contatto del corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the breath and the state you arrive in.",
+            "it": "Nota il respiro e lo stato in cui arrivi."
+          }
+        },
+        {
+          "text": {
+            "en": "Offer yourself a few phrases of kindness.",
+            "it": "Rivolgi a te stesso poche frasi di gentilezza."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring to mind someone towards whom kindness is easy.",
+            "it": "Porta alla mente una persona verso cui la gentilezza è facile."
+          }
+        },
+        {
+          "text": {
+            "en": "Offer them the same phrases.",
+            "it": "Rivolgi a lei le stesse frasi."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring to mind someone tied to a moderate difficulty.",
+            "it": "Porta alla mente una persona legata a una difficoltà moderata."
+          }
+        },
+        {
+          "text": {
+            "en": "Offer them the phrases too, staying in touch with the body.",
+            "it": "Rivolgi anche a lei le frasi, restando in contatto con il corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "If the intensity grows, return to the easy person or to the breath.",
+            "it": "Se l'intensità cresce, torna alla persona facile o al respiro."
+          }
+        },
+        {
+          "text": {
+            "en": "Come back to yourself and close.",
+            "it": "Torna a te stesso e concludi."
+          }
+        }
+      ],
+      "safetyNotes": {
+        "en": "Choose a moderate difficulty: this practice is not meant for people or situations tied to traumatic or strongly destabilising experiences. At any point you can open your eyes, feel your feet on the ground, or stop the practice.",
+        "it": "Scegli una difficoltà moderata: questa pratica non è pensata per persone o situazioni legate a esperienze traumatiche o fortemente destabilizzanti. In qualsiasi momento puoi aprire gli occhi, sentire i piedi a terra o interrompere la pratica."
+      },
+      "tags": [
+        {
+          "en": "compassion",
+          "it": "compassione"
+        },
+        {
+          "en": "anger",
+          "it": "rabbia"
+        },
+        {
+          "en": "emotions",
+          "it": "emozioni"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-open-monitoring-thoughts",
+      "title": {
+        "en": "Watching thoughts",
+        "it": "Osservare i pensieri"
+      },
+      "description": {
+        "en": "A practice for watching thoughts as they appear and dissolve, without following them.",
+        "it": "Una pratica per osservare i pensieri mentre compaiono e si sciolgono, senza seguirli."
+      },
+      "technique": {
+        "id": "open-monitoring",
+        "label": {
+          "en": "Open Monitoring",
+          "it": "Open Monitoring"
+        }
+      },
+      "category": {
+        "id": "mind",
+        "label": {
+          "en": "Mind",
+          "it": "Mente"
+        }
+      },
+      "goal": {
+        "id": "thoughts",
+        "label": {
+          "en": "Thoughts",
+          "it": "Pensieri"
+        }
+      },
+      "durationMinutes": 10,
+      "level": "intermediate",
+      "steps": [
+        {
+          "text": {
+            "en": "Begin with the breath, for a few minutes.",
+            "it": "Comincia dal respiro, per qualche minuto."
+          }
+        },
+        {
+          "text": {
+            "en": "Widen attention beyond the breath.",
+            "it": "Allarga l'attenzione oltre il respiro."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice when a thought appears.",
+            "it": "Nota quando compare un pensiero."
+          }
+        },
+        {
+          "text": {
+            "en": "Watch it without stepping inside it.",
+            "it": "Osservalo senza entrarci dentro."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice when it dissolves.",
+            "it": "Nota quando si scioglie."
+          }
+        },
+        {
+          "text": {
+            "en": "Let another one arrive and repeat.",
+            "it": "Lascia che ne arrivi un altro e ripeti."
+          }
+        },
+        {
+          "text": {
+            "en": "Return to the body and close.",
+            "it": "Torna al corpo e concludi."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "mind",
+          "it": "mente"
+        },
+        {
+          "en": "thoughts",
+          "it": "pensieri"
+        },
+        {
+          "en": "observation",
+          "it": "osservazione"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-open-monitoring-presence",
+      "title": {
+        "en": "Awareness of the present",
+        "it": "Consapevolezza del presente"
+      },
+      "description": {
+        "en": "A practice for widening attention from the breath to the body, to sounds, and to what passes through the mind.",
+        "it": "Una pratica per allargare l'attenzione dal respiro al corpo, ai suoni e a ciò che passa nella mente."
+      },
+      "technique": {
+        "id": "open-monitoring",
+        "label": {
+          "en": "Open Monitoring",
+          "it": "Open Monitoring"
+        }
+      },
+      "category": {
+        "id": "mind",
+        "label": {
+          "en": "Mind",
+          "it": "Mente"
+        }
+      },
+      "goal": {
+        "id": "presence",
+        "label": {
+          "en": "Presence",
+          "it": "Presenza"
+        }
+      },
+      "durationMinutes": 10,
+      "level": "intermediate",
+      "steps": [
+        {
+          "text": {
+            "en": "Start from the breath.",
+            "it": "Parti dal respiro."
+          }
+        },
+        {
+          "text": {
+            "en": "Move attention to the body.",
+            "it": "Sposta l'attenzione al corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "Open your listening to the sounds around you.",
+            "it": "Apri l'ascolto ai suoni intorno a te."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the thoughts passing through.",
+            "it": "Nota i pensieri che passano."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the feelings that are present.",
+            "it": "Nota le emozioni presenti."
+          }
+        },
+        {
+          "text": {
+            "en": "Let everything stay in the same field of awareness.",
+            "it": "Lascia che tutto resti nello stesso campo di consapevolezza."
+          }
+        },
+        {
+          "text": {
+            "en": "Stay in silence for a stretch.",
+            "it": "Resta in silenzio per un tratto."
+          }
+        },
+        {
+          "text": {
+            "en": "Close the practice with a few breaths.",
+            "it": "Chiudi la pratica con qualche respiro."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "mind",
+          "it": "mente"
+        },
+        {
+          "en": "presence",
+          "it": "presenza"
+        },
+        {
+          "en": "awareness",
+          "it": "consapevolezza"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-open-monitoring-open-awareness",
+      "title": {
+        "en": "Open awareness",
+        "it": "Consapevolezza aperta"
+      },
+      "description": {
+        "en": "A long, loosely structured practice, with wide silences and no privileged object of attention.",
+        "it": "Una pratica lunga e poco strutturata, con silenzi ampi e nessun oggetto di attenzione privilegiato."
+      },
+      "technique": {
+        "id": "open-monitoring",
+        "label": {
+          "en": "Open Monitoring",
+          "it": "Open Monitoring"
+        }
+      },
+      "category": {
+        "id": "mind",
+        "label": {
+          "en": "Mind",
+          "it": "Mente"
+        }
+      },
+      "goal": {
+        "id": "open-meditation",
+        "label": {
+          "en": "Open meditation",
+          "it": "Meditazione aperta"
+        }
+      },
+      "durationMinutes": 20,
+      "level": "advanced",
+      "steps": [
+        {
+          "text": {
+            "en": "Give the first three minutes to the breath.",
+            "it": "Dedica i primi tre minuti al respiro."
+          },
+          "durationSeconds": 180
+        },
+        {
+          "text": {
+            "en": "Open attention to the sensations of the body.",
+            "it": "Apri l'attenzione alle sensazioni del corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "Include the sounds.",
+            "it": "Includi i suoni."
+          }
+        },
+        {
+          "text": {
+            "en": "Include thoughts and feelings.",
+            "it": "Includi pensieri ed emozioni."
+          }
+        },
+        {
+          "text": {
+            "en": "Let every privileged object fall away: what is here remains.",
+            "it": "Lascia cadere ogni oggetto privilegiato: resta ciò che c'è."
+          }
+        },
+        {
+          "text": {
+            "en": "Stay in silence for a long while.",
+            "it": "Resta in silenzio a lungo."
+          }
+        },
+        {
+          "text": {
+            "en": "Return gradually to the breath and the body.",
+            "it": "Torna gradualmente al respiro e al corpo."
+          }
+        }
+      ],
+      "safetyNotes": {
+        "en": "This is a long practice with few instructions. If at some point it becomes too much, you can open your eyes, feel the contact of your feet or of your body, or stop the practice.",
+        "it": "È una pratica lunga, con poche indicazioni. Se in qualche momento diventa troppo, puoi aprire gli occhi, sentire il contatto dei piedi o del corpo, oppure interrompere la pratica."
+      },
+      "tags": [
+        {
+          "en": "mind",
+          "it": "mente"
+        },
+        {
+          "en": "open awareness",
+          "it": "consapevolezza aperta"
+        },
+        {
+          "en": "advanced",
+          "it": "avanzato"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-yoga-nidra-rest",
+      "title": {
+        "en": "Yoga Nidra for rest",
+        "it": "Yoga Nidra per il riposo"
+      },
+      "description": {
+        "en": "A lying practice that accompanies deep rest while staying present, with a slow rotation of awareness through the body.",
+        "it": "Una pratica sdraiata che accompagna un riposo profondo restando presenti, con una rotazione lenta della consapevolezza nel corpo."
+      },
+      "technique": {
+        "id": "yoga-nidra",
+        "label": {
+          "en": "Yoga Nidra",
+          "it": "Yoga Nidra"
+        }
+      },
+      "category": {
+        "id": "rest",
+        "label": {
+          "en": "Rest",
+          "it": "Riposo"
+        }
+      },
+      "goal": {
+        "id": "deep-rest",
+        "label": {
+          "en": "Deep rest",
+          "it": "Riposo profondo"
+        }
+      },
+      "durationMinutes": 20,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Lie down in a comfortable position.",
+            "it": "Sdraiati in una posizione comoda."
+          }
+        },
+        {
+          "text": {
+            "en": "Let the body be held by what is underneath it.",
+            "it": "Lascia che il corpo sia sostenuto da ciò che sta sotto."
+          }
+        },
+        {
+          "text": {
+            "en": "Set a short intention, in a few words.",
+            "it": "Formula una breve intenzione, in poche parole."
+          }
+        },
+        {
+          "text": {
+            "en": "Follow the rotation of awareness: right hand, arm, shoulder.",
+            "it": "Segui la rotazione della consapevolezza: mano destra, braccio, spalla."
+          }
+        },
+        {
+          "text": {
+            "en": "Continue with the left side, then with the legs.",
+            "it": "Prosegui con il lato sinistro, poi con le gambe."
+          }
+        },
+        {
+          "text": {
+            "en": "Cross the trunk, the back, the neck and the face.",
+            "it": "Attraversa tronco, schiena, collo e volto."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the breath without guiding it.",
+            "it": "Nota il respiro senza guidarlo."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the sensations: weight, warmth, contact.",
+            "it": "Osserva le sensazioni: peso, calore, contatto."
+          }
+        },
+        {
+          "text": {
+            "en": "Let a few simple images pass, without building them.",
+            "it": "Lascia passare qualche immagine semplice, senza costruirla."
+          }
+        },
+        {
+          "text": {
+            "en": "Stay with the whole body in the stillness, then return slowly.",
+            "it": "Resta con il corpo intero nella quiete, poi torna con calma."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "rest",
+          "it": "riposo"
+        },
+        {
+          "en": "yoga nidra",
+          "it": "yoga nidra"
+        },
+        {
+          "en": "body",
+          "it": "corpo"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-yoga-nidra-break",
+      "title": {
+        "en": "Restorative pause",
+        "it": "Pausa rigenerante"
+      },
+      "description": {
+        "en": "A pause in the middle of the day, to stop and recover before picking things up again.",
+        "it": "Una pausa nel mezzo della giornata, per fermarti e recuperare prima di riprendere."
+      },
+      "technique": {
+        "id": "yoga-nidra",
+        "label": {
+          "en": "Yoga Nidra",
+          "it": "Yoga Nidra"
+        }
+      },
+      "category": {
+        "id": "rest",
+        "label": {
+          "en": "Rest",
+          "it": "Riposo"
+        }
+      },
+      "goal": {
+        "id": "daytime-recovery",
+        "label": {
+          "en": "Daytime recovery",
+          "it": "Recupero durante la giornata"
+        }
+      },
+      "durationMinutes": 15,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Take a comfortable position, lying down or sitting.",
+            "it": "Mettiti in una posizione comoda, sdraiato o seduto."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice where the body makes contact.",
+            "it": "Nota i punti di contatto del corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "Make a short scan from the feet to the head.",
+            "it": "Fai una breve scansione dai piedi alla testa."
+          }
+        },
+        {
+          "text": {
+            "en": "Follow a rotation of attention through the body.",
+            "it": "Segui una rotazione dell'attenzione nel corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the breath.",
+            "it": "Nota il respiro."
+          }
+        },
+        {
+          "text": {
+            "en": "Stay with the whole body.",
+            "it": "Resta con il corpo intero."
+          }
+        },
+        {
+          "text": {
+            "en": "Allow yourself a stretch of silence.",
+            "it": "Concediti un tratto di silenzio."
+          }
+        },
+        {
+          "text": {
+            "en": "Move the hands and the feet gently.",
+            "it": "Muovi piano le mani e i piedi."
+          }
+        },
+        {
+          "text": {
+            "en": "Open your eyes and take the day back up.",
+            "it": "Apri gli occhi e riprendi la giornata."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "rest",
+          "it": "riposo"
+        },
+        {
+          "en": "pause",
+          "it": "pausa"
+        },
+        {
+          "en": "recovery",
+          "it": "recupero"
+        }
+      ],
+      "audioAsset": null
+    },
+    {
+      "id": "meditation-yoga-nidra-sleep",
+      "title": {
+        "en": "Evening Yoga Nidra",
+        "it": "Yoga Nidra della sera"
+      },
+      "description": {
+        "en": "A long, slow practice that accompanies the evening rest, with nothing to reach.",
+        "it": "Una pratica lunga e lenta che accompagna il momento del riposo serale, senza nulla da raggiungere."
+      },
+      "technique": {
+        "id": "yoga-nidra",
+        "label": {
+          "en": "Yoga Nidra",
+          "it": "Yoga Nidra"
+        }
+      },
+      "category": {
+        "id": "rest",
+        "label": {
+          "en": "Rest",
+          "it": "Riposo"
+        }
+      },
+      "goal": {
+        "id": "pre-sleep",
+        "label": {
+          "en": "Before sleep",
+          "it": "Pre-sonno"
+        }
+      },
+      "durationMinutes": 25,
+      "level": "beginner",
+      "steps": [
+        {
+          "text": {
+            "en": "Take the position you sleep in.",
+            "it": "Mettiti nella posizione in cui dormi."
+          }
+        },
+        {
+          "text": {
+            "en": "Feel the weight of the body as it settles.",
+            "it": "Senti il peso del corpo che si appoggia."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the natural breath.",
+            "it": "Nota il respiro naturale."
+          }
+        },
+        {
+          "text": {
+            "en": "Follow a slow rotation of awareness through the body.",
+            "it": "Segui una rotazione lenta della consapevolezza nel corpo."
+          }
+        },
+        {
+          "text": {
+            "en": "Bring attention to the belly as it moves.",
+            "it": "Porta l'attenzione all'addome che si muove."
+          }
+        },
+        {
+          "text": {
+            "en": "Notice the sensations of contact with the bed.",
+            "it": "Osserva le sensazioni di contatto con il letto."
+          }
+        },
+        {
+          "text": {
+            "en": "Stay with the whole body.",
+            "it": "Resta con il corpo intero."
+          }
+        },
+        {
+          "text": {
+            "en": "Let the instructions thin out.",
+            "it": "Lascia che le indicazioni si diradino."
+          }
+        },
+        {
+          "text": {
+            "en": "Stay in the silence, with nothing to reach.",
+            "it": "Resta nel silenzio, senza dover raggiungere nulla."
+          }
+        }
+      ],
+      "tags": [
+        {
+          "en": "rest",
+          "it": "riposo"
+        },
+        {
+          "en": "evening",
+          "it": "sera"
+        },
+        {
+          "en": "yoga nidra",
+          "it": "yoga nidra"
+        }
+      ],
+      "audioAsset": null
+    }
+  ]
 }

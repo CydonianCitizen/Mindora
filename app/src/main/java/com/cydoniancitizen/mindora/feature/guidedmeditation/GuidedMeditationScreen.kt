@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -18,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +36,9 @@ import com.cydoniancitizen.mindora.core.format.formatElapsed
 import com.cydoniancitizen.mindora.core.media.PlaybackFailureResult
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.ui.MindoraTopAppBar
+import com.cydoniancitizen.mindora.ui.session.EndSessionDialog
 import com.cydoniancitizen.mindora.ui.session.SessionAction
+import com.cydoniancitizen.mindora.ui.session.SessionFinished
 import com.cydoniancitizen.mindora.ui.session.SessionMessage
 import com.cydoniancitizen.mindora.ui.session.SessionProgress
 import com.cydoniancitizen.mindora.ui.session.SessionSaveFailed
@@ -122,25 +122,16 @@ internal fun GuidedMeditationScreen(
     }
 
     if (confirmEnd) {
-        AlertDialog(
-            onDismissRequest = { confirmEnd = false },
-            title = { Text(stringResource(R.string.end_guided_meditation_title)) },
-            text = { Text(stringResource(R.string.end_guided_meditation_message)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmEnd = false
-                        onEnd()
-                    },
-                ) {
-                    Text(stringResource(R.string.end_meditation))
-                }
+        EndSessionDialog(
+            title = stringResource(R.string.end_guided_meditation_title),
+            message = stringResource(R.string.end_guided_meditation_message),
+            confirmLabel = stringResource(R.string.end_meditation),
+            dismissLabel = stringResource(R.string.continue_meditation),
+            onConfirm = {
+                confirmEnd = false
+                onEnd()
             },
-            dismissButton = {
-                TextButton(onClick = { confirmEnd = false }) {
-                    Text(stringResource(R.string.continue_meditation))
-                }
-            },
+            onDismiss = { confirmEnd = false },
         )
     }
 }
@@ -192,7 +183,17 @@ private fun GuidedMeditationContent(
         is GuidedMeditationUiState.Saving -> SessionProgress(
             stringResource(R.string.saving_session),
         )
-        is GuidedMeditationUiState.Finished -> FinishedContent(uiState, onDone)
+        is GuidedMeditationUiState.Finished -> SessionFinished(
+            title = stringResource(
+                if (uiState.status == MindfulnessSessionStatus.COMPLETED) {
+                    R.string.guided_completed_result
+                } else {
+                    R.string.guided_interrupted_result
+                },
+            ),
+            activeDuration = formatElapsed(uiState.activeDuration),
+            onDone = onDone,
+        )
         is GuidedMeditationUiState.SaveFailed -> SessionSaveFailed(
             onRetrySave = onRetrySave,
             onDiscard = onDiscard,
@@ -322,26 +323,6 @@ private fun PlaybackContent(
             Text(stringResource(R.string.end))
         }
     }
-}
-
-@Composable
-private fun FinishedContent(
-    state: GuidedMeditationUiState.Finished,
-    onDone: () -> Unit,
-) {
-    val result = if (state.status == MindfulnessSessionStatus.COMPLETED) {
-        stringResource(R.string.guided_completed_result)
-    } else {
-        stringResource(R.string.guided_interrupted_result)
-    }
-    SessionMessage(
-        title = result,
-        supportingText = "${stringResource(
-            R.string.active_duration_summary,
-            formatElapsed(state.activeDuration),
-        )}\n${stringResource(R.string.session_saved)}",
-        primaryAction = SessionAction(stringResource(R.string.done), onDone),
-    )
 }
 
 @Composable

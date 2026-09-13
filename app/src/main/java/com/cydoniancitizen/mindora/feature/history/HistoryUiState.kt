@@ -1,13 +1,16 @@
 package com.cydoniancitizen.mindora.feature.history
 
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
+import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
 import java.time.YearMonth
 
-enum class HistoryFilter {
-    ALL,
-    GUIDED_MEDITATION,
-    FREE_MEDITATION,
-    BREATHING_EXERCISE,
+/** [type] is the session type a filter keeps; null keeps every session. */
+enum class HistoryFilter(val type: MindfulnessSessionType?) {
+    ALL(null),
+    GUIDED_MEDITATION(MindfulnessSessionType.GUIDED_MEDITATION),
+    FREE_MEDITATION(MindfulnessSessionType.FREE_MEDITATION),
+    BREATHING_EXERCISE(MindfulnessSessionType.BREATHING_EXERCISE),
+    WHITE_NOISE(MindfulnessSessionType.WHITE_NOISE),
 }
 
 data class HistorySessionDisplayItem(
@@ -27,10 +30,7 @@ sealed interface HistoryUiState {
 
     data class Content(
         val selectedFilter: HistoryFilter,
-        val availableFilters: List<HistoryFilter>,
         val monthGroups: List<HistoryMonthGroup>,
-        val totalSessionsCount: Int,
-        val sessions: List<MindfulnessSession> = emptyList(),
     ) : HistoryUiState
 
     data object Error : HistoryUiState

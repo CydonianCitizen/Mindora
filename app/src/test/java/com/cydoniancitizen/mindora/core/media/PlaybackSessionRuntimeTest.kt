@@ -1,7 +1,5 @@
 package com.cydoniancitizen.mindora.core.media
 
-import com.cydoniancitizen.mindora.core.content.ResolvedGuidedMeditation
-import com.cydoniancitizen.mindora.core.content.model.GuidedMeditationStep
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
@@ -19,20 +17,20 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class GuidedSessionRuntimeTest {
+class PlaybackSessionRuntimeTest {
     @Test
-    fun `natural end saves one completed guided session with catalogue identity`() = runTest {
+    fun `natural end saves one completed session with catalogue identity`() = runTest {
         val repository = FakeRepository()
         val time = FakeTimeSource(elapsedMillis = 1_000)
-        val runtime = runtime(repository, time)
+        val runtime = guidedRuntime(repository, time)
         runtime.setPlaying(true)
         time.elapsedMillis = 8_500
 
         val result = runtime.finalize(MindfulnessSessionStatus.COMPLETED)
         val duplicate = runtime.finalize(MindfulnessSessionStatus.INTERRUPTED)
 
-        assertTrue(result is GuidedSaveResult.Saved)
-        assertSame(GuidedSaveResult.Ignored, duplicate)
+        assertTrue(result is PlaybackSaveResult.Saved)
+        assertSame(PlaybackSaveResult.Ignored, duplicate)
         val session = repository.saved.single()
         assertEquals("fixed-id", session.id)
         assertEquals(MindfulnessSessionType.GUIDED_MEDITATION, session.type)
@@ -49,7 +47,7 @@ class GuidedSessionRuntimeTest {
     fun `early end saves interrupted and excludes paused time`() = runTest {
         val repository = FakeRepository()
         val time = FakeTimeSource(elapsedMillis = 10_000)
-        val runtime = runtime(repository, time)
+        val runtime = guidedRuntime(repository, time)
         runtime.setPlaying(true)
         time.elapsedMillis = 12_000
         runtime.setPlaying(false)
@@ -67,11 +65,11 @@ class GuidedSessionRuntimeTest {
     @Test
     fun `player error before active time creates no session`() = runTest {
         val repository = FakeRepository()
-        val runtime = runtime(repository, FakeTimeSource())
+        val runtime = guidedRuntime(repository, FakeTimeSource())
 
         val result = runtime.finalize(MindfulnessSessionStatus.INTERRUPTED)
 
-        assertSame(GuidedSaveResult.NothingToSave, result)
+        assertSame(PlaybackSaveResult.NothingToSave, result)
         assertTrue(repository.attempts.isEmpty())
     }
 
@@ -79,7 +77,7 @@ class GuidedSessionRuntimeTest {
     fun `player error after active time creates interrupted session`() = runTest {
         val repository = FakeRepository()
         val time = FakeTimeSource(elapsedMillis = 50)
-        val runtime = runtime(repository, time)
+        val runtime = guidedRuntime(repository, time)
         runtime.setPlaying(true)
         time.elapsedMillis = 1_050
 
@@ -93,17 +91,17 @@ class GuidedSessionRuntimeTest {
     fun `save failure retains exact session and retry reuses UUID`() = runTest {
         val repository = FakeRepository(fail = true)
         val time = FakeTimeSource(elapsedMillis = 1_000)
-        val runtime = runtime(repository, time)
+        val runtime = guidedRuntime(repository, time)
         runtime.setPlaying(true)
         time.elapsedMillis = 2_000
 
         val failed = runtime.finalize(MindfulnessSessionStatus.COMPLETED)
-        val pending = runtime.pendingSession
+        runtime.pendingSession
         repository.fail = false
         val retried = runtime.retry()
 
-        assertTrue(failed is GuidedSaveResult.Failed)
-        assertTrue(retried is GuidedSaveResult.Saved)
+        assertTrue(failed is PlaybackSaveResult.Failed)
+        assertTrue(retried is PlaybackSaveResult.Saved)
         assertEquals(listOf("fixed-id", "fixed-id"), repository.attempts.map { it.id })
         assertEquals("fixed-id", repository.saved.single().id)
         assertNull(runtime.pendingSession)
@@ -113,7 +111,7 @@ class GuidedSessionRuntimeTest {
     fun `discard clears failed pending session without saving`() = runTest {
         val repository = FakeRepository(fail = true)
         val time = FakeTimeSource(elapsedMillis = 0)
-        val runtime = runtime(repository, time)
+        val runtime = guidedRuntime(repository, time)
         runtime.setPlaying(true)
         time.elapsedMillis = 1_000
         runtime.finalize(MindfulnessSessionStatus.INTERRUPTED)
@@ -124,19 +122,48 @@ class GuidedSessionRuntimeTest {
         assertTrue(repository.saved.isEmpty())
     }
 
-    private fun runtime(
+    @Test
+    fun `white noise identity saves a standalone completed session`() = runTest {
+        val repository = FakeRepository()
+        val time = FakeTimeSource(elapsedMillis = 0)
+        val runtime = PlaybackSessionRuntime(
+            identity = PlaybackSessionIdentity(
+                type = MindfulnessSessionType.WHITE_NOISE,
+                sourcePathId = null,
+                sourceStepId = "white-noise",
+                plannedDuration = Duration.ofMinutes(10),
+            ),
+            startedAt = STARTED_AT,
+            timeSource = time,
+            repository = repository,
+            idFactory = { "fixed-id" },
+        )
+        runtime.setPlaying(true)
+        time.elapsedMillis = Duration.ofMinutes(10).toMillis()
+
+        val result = runtime.finalize(MindfulnessSessionStatus.COMPLETED)
+        val duplicate = runtime.finalize(MindfulnessSessionStatus.COMPLETED)
+
+        assertTrue(result is PlaybackSaveResult.Saved)
+        assertSame(PlaybackSaveResult.Ignored, duplicate)
+        val session = repository.saved.single()
+        assertEquals(MindfulnessSessionType.WHITE_NOISE, session.type)
+        assertNull(session.sourcePathId)
+        assertEquals("white-noise", session.sourceStepId)
+        assertEquals(Duration.ofMinutes(10), session.activeDuration)
+        assertEquals(Duration.ofMinutes(10), session.plannedDuration)
+        assertEquals(1, repository.attempts.size)
+    }
+
+    private fun guidedRuntime(
         repository: FakeRepository,
         time: FakeTimeSource,
-    ) = GuidedSessionRuntime(
-        meditation = ResolvedGuidedMeditation(
-            pathId = "path-one",
-            step = GuidedMeditationStep(
-                id = "guided-one",
-                title = "Guided title",
-                description = "Guided description",
-                durationSeconds = 300,
-                audioAsset = "audio/guided.mp3",
-            ),
+    ) = PlaybackSessionRuntime(
+        identity = PlaybackSessionIdentity(
+            type = MindfulnessSessionType.GUIDED_MEDITATION,
+            sourcePathId = "path-one",
+            sourceStepId = "guided-one",
+            plannedDuration = Duration.ofMinutes(5),
         ),
         startedAt = STARTED_AT,
         timeSource = time,

@@ -12,6 +12,10 @@
     <string name="practice_error_message">Mindfulness paths couldn’t be loaded.</string>
     <string name="free_meditation">Free meditation</string>
     <string name="free_meditation_description">Meditate with a simple countdown timer.</string>
+    <string name="white_noise">White Noise</string>
+    <string name="white_noise_description">Play a looping ambient sound for a set time.</string>
+    <string name="white_noise_stop">Stop</string>
+    <string name="white_noise_finished">White Noise finished</string>
     <string name="bundled_mindfulness_paths">Mindfulness paths</string>
     <string name="mindfulness_path">Mindfulness path</string>
     <plurals name="path_progress">
@@ -87,6 +91,7 @@
     <string name="session_type_guided_meditation">Guided meditation</string>
     <string name="session_type_free_meditation">Free meditation</string>
     <string name="session_type_breathing_exercise">Breathing exercise</string>
+    <string name="session_type_white_noise">White Noise</string>
     <string name="session_status_completed">Completed</string>
     <string name="session_status_interrupted">Interrupted</string>
     <string name="history_session_started_at">%1$s at %2$s</string>
@@ -163,6 +168,7 @@
     <string name="history_filter_guided">Guided meditation</string>
     <string name="history_filter_free">Free meditation</string>
     <string name="history_filter_breathing">Breathing exercise</string>
+    <string name="history_filter_white_noise">White Noise</string>
     <string name="history_empty_title">Your journey starts here</string>
     <string name="history_empty_description">Complete your first meditation or breathing exercise to begin building your history.</string>
     <string name="history_start_practice">Start a practice</string>
@@ -186,4 +192,22 @@
     <string name="export_data_running">Exporting…</string>
     <string name="export_data_done">Data exported.</string>
     <string name="export_data_failed">The export couldn’t be saved.</string>
+    <string name="library">Library</string>
+    <string name="library_subtitle">Practices to explore, one at a time.</string>
+    <string name="library_description">Fifteen practices to explore, by goal, duration and level.</string>
+    <string name="library_error">The meditation library couldn’t be loaded.</string>
+    <string name="library_filter_all">All</string>
+    <string name="meditation_category">Category</string>
+    <string name="meditation_goal">Goal</string>
+    <string name="meditation_duration">Duration</string>
+    <string name="meditation_level">Level</string>
+    <string name="meditation_level_beginner">Beginner</string>
+    <string name="meditation_level_intermediate">Intermediate</string>
+    <string name="meditation_level_advanced">Advanced</string>
+    <string name="meditation_technique">Technique</string>
+    <string name="meditation_tags">Tags</string>
+    <string name="meditation_how_to_practise">How to practise</string>
+    <string name="meditation_safety_note">Before you begin</string>
+    <string name="meditation_start">Start the practice</string>
+    <string name="meditation_unavailable">This meditation is no longer available.</string>
 </resources>

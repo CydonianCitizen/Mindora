@@ -8,54 +8,56 @@ sealed interface GuidedPlaybackState {
     data object Disconnected : GuidedPlaybackState
     data object Idle : GuidedPlaybackState
 
-    sealed interface WithMedia : GuidedPlaybackState {
-        val stepId: String
-        val position: Duration
-        val mediaDuration: Duration?
+    sealed interface ForContent : GuidedPlaybackState {
+        val stepId: String?
     }
 
     data class Preparing(
         override val stepId: String,
-        override val position: Duration,
-        override val mediaDuration: Duration?,
-    ) : WithMedia
+        val position: Duration,
+        val mediaDuration: Duration?,
+    ) : ForContent
 
     data class Playing(
         override val stepId: String,
-        override val position: Duration,
-        override val mediaDuration: Duration?,
-    ) : WithMedia
+        val position: Duration,
+        val mediaDuration: Duration?,
+    ) : ForContent
 
     data class Paused(
         override val stepId: String,
-        override val position: Duration,
-        override val mediaDuration: Duration?,
-    ) : WithMedia
+        val position: Duration,
+        val mediaDuration: Duration?,
+    ) : ForContent
 
     data class Saving(
-        val stepId: String,
+        override val stepId: String,
         val activeDuration: Duration,
-    ) : GuidedPlaybackState
+    ) : ForContent
 
     data class Finished(
-        val stepId: String,
+        override val stepId: String,
         val status: MindfulnessSessionStatus,
         val activeDuration: Duration,
-    ) : GuidedPlaybackState
+    ) : ForContent
 
     data class SaveFailed(
-        val stepId: String,
+        override val stepId: String,
         val activeDuration: Duration,
-    ) : GuidedPlaybackState
+    ) : ForContent
 
     data class PlaybackFailed(
-        val stepId: String?,
+        override val stepId: String?,
         val result: PlaybackFailureResult,
         val activeDuration: Duration,
-    ) : GuidedPlaybackState
+    ) : ForContent
 }
 
 enum class PlaybackFailureResult {
     NOTHING_SAVED,
     INTERRUPTED_SAVED,
+}
+
+internal enum class PlaybackPhase {
+    IDLE, PREPARING, PLAYING, PAUSED, SAVING, FINISHED, SAVE_FAILED, PLAYBACK_FAILED,
 }

@@ -2,11 +2,10 @@ package com.cydoniancitizen.mindora.feature.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cydoniancitizen.mindora.core.content.MeditationLibraryRepository
 import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
-import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
-import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.YearMonth
 import java.time.ZoneId
@@ -23,45 +22,46 @@ import kotlinx.coroutines.flow.stateIn
 class HistoryViewModel @Inject constructor(
     private val sessionRepository: MindfulnessSessionRepository,
     private val contentRepository: MindfulnessContentRepository? = null,
+    private val libraryRepository: MeditationLibraryRepository? = null,
 ) : ViewModel() {
 
     private val selectedFilterState = MutableStateFlow(HistoryFilter.ALL)
     val selectedFilter: StateFlow<HistoryFilter> = selectedFilterState
 
-    private val pathsFlow = flow {
-        val paths = try {
-            contentRepository?.getPaths() ?: emptyList()
+    /**
+     * Titles for the sessions that came from bundled content, whether that was a path step or a
+     * library meditation. History reads by name or not at all, so a failed load is not an error
+     * here: the rows fall back to their session type.
+     */
+    private val catalogueTitlesFlow = flow {
+        val titles = try {
+            (contentRepository?.getPaths() ?: emptyList())
+                .flatMap { it.steps }
+                .associate { it.id to it.title } +
+                (libraryRepository?.getMeditations() ?: emptyList())
+                    .associate { it.id to it.title }
         } catch (_: Exception) {
-            emptyList()
+            emptyMap()
         }
-        emit(paths)
+        emit(titles)
     }
 
     val uiState: StateFlow<HistoryUiState> = combine(
         sessionRepository.observeSessions(),
         selectedFilterState,
-        pathsFlow,
-    ) { sessions, filter, paths ->
+        catalogueTitlesFlow,
+    ) { sessions, filter, stepTitleMap ->
         if (sessions.isEmpty()) {
             HistoryUiState.Empty
         } else {
-            val stepTitleMap = buildStepTitleMap(paths)
             val sortedSessions = sessions.sortedByDescending { it.startedAt }
-            val filteredSessions = when (filter) {
-                HistoryFilter.ALL -> sortedSessions
-                HistoryFilter.GUIDED_MEDITATION -> sortedSessions.filter { it.type == MindfulnessSessionType.GUIDED_MEDITATION }
-                HistoryFilter.FREE_MEDITATION -> sortedSessions.filter { it.type == MindfulnessSessionType.FREE_MEDITATION }
-                HistoryFilter.BREATHING_EXERCISE -> sortedSessions.filter { it.type == MindfulnessSessionType.BREATHING_EXERCISE }
-            }
-
-            val monthGroups = groupSessionsByMonth(filteredSessions, stepTitleMap)
+            val filteredSessions = filter.type
+                ?.let { type -> sortedSessions.filter { it.type == type } }
+                ?: sortedSessions
 
             HistoryUiState.Content(
                 selectedFilter = filter,
-                availableFilters = HistoryFilter.entries,
-                monthGroups = monthGroups,
-                totalSessionsCount = sessions.size,
-                sessions = filteredSessions,
+                monthGroups = groupSessionsByMonth(filteredSessions, stepTitleMap),
             )
         }
     }.catch {
@@ -77,16 +77,6 @@ class HistoryViewModel @Inject constructor(
     }
 
     companion object {
-        fun buildStepTitleMap(paths: List<MindfulnessPath>): Map<String, String> {
-            val map = mutableMapOf<String, String>()
-            for (path in paths) {
-                for (step in path.steps) {
-                    map[step.id] = step.title
-                }
-            }
-            return map
-        }
-
         fun groupSessionsByMonth(
             sessions: List<MindfulnessSession>,
             stepTitleMap: Map<String, String> = emptyMap(),

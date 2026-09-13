@@ -48,7 +48,6 @@ class GuidedMeditationViewModelTest {
         assertEquals("Guided title", ready.meditation.title)
         assertEquals("Guided description", ready.meditation.description)
         assertEquals(Duration.ofMinutes(5), ready.meditation.plannedDuration)
-        assertEquals("audio/guided.mp3", ready.meditation.audioAsset)
     }
 
     @Test
@@ -190,6 +189,51 @@ class GuidedMeditationViewModelTest {
         }
     }
 
+    @Test
+    fun `foreign content and nullable failures preserve ownership`() = runTest {
+        val playback = FakePlayback()
+        val viewModel = viewModel(playback = playback)
+        advanceUntilIdle()
+        listOf(
+            GuidedPlaybackState.Preparing("other", Duration.ZERO, null),
+            GuidedPlaybackState.Playing("other", Duration.ZERO, null),
+            GuidedPlaybackState.Paused("other", Duration.ZERO, null),
+            GuidedPlaybackState.Saving("other", Duration.ZERO),
+            GuidedPlaybackState.Finished("other", MindfulnessSessionStatus.COMPLETED, Duration.ZERO),
+            GuidedPlaybackState.SaveFailed("other", Duration.ZERO),
+            GuidedPlaybackState.PlaybackFailed("other", PlaybackFailureResult.NOTHING_SAVED, Duration.ZERO),
+        ).forEach { state ->
+            playback.mutableState.value = state
+            advanceUntilIdle()
+            assertTrue("Unexpected mapping for $state", viewModel.uiState.value is GuidedMeditationUiState.Ready)
+        }
+        playback.mutableState.value = GuidedPlaybackState.PlaybackFailed(
+            null, PlaybackFailureResult.NOTHING_SAVED, Duration.ZERO,
+        )
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value is GuidedMeditationUiState.PlaybackFailed)
+    }
+
+    @Test
+    fun `all owned states retain their screen mapping`() = runTest {
+        val playback = FakePlayback()
+        val viewModel = viewModel(playback = playback)
+        advanceUntilIdle()
+        listOf(
+            GuidedPlaybackState.Preparing("guided-one", Duration.ZERO, null) to GuidedMeditationUiState.Preparing::class,
+            GuidedPlaybackState.Playing("guided-one", Duration.ZERO, null) to GuidedMeditationUiState.Playing::class,
+            GuidedPlaybackState.Paused("guided-one", Duration.ZERO, null) to GuidedMeditationUiState.Paused::class,
+            GuidedPlaybackState.Saving("guided-one", Duration.ZERO) to GuidedMeditationUiState.Saving::class,
+            GuidedPlaybackState.Finished("guided-one", MindfulnessSessionStatus.COMPLETED, Duration.ZERO) to GuidedMeditationUiState.Finished::class,
+            GuidedPlaybackState.SaveFailed("guided-one", Duration.ZERO) to GuidedMeditationUiState.SaveFailed::class,
+            GuidedPlaybackState.PlaybackFailed("guided-one", PlaybackFailureResult.NOTHING_SAVED, Duration.ZERO) to GuidedMeditationUiState.PlaybackFailed::class,
+        ).forEach { (state, expected) ->
+            playback.mutableState.value = state
+            advanceUntilIdle()
+            assertEquals("Unexpected mapping for $state", expected, viewModel.uiState.value::class)
+        }
+    }
+
     private class FakePlayback : GuidedMeditationPlayback {
         val mutableState = MutableStateFlow<GuidedPlaybackState>(GuidedPlaybackState.Idle)
         override val state: StateFlow<GuidedPlaybackState> = mutableState
@@ -202,6 +246,9 @@ class GuidedMeditationViewModelTest {
         var clearCount = 0
 
         override fun start(stepId: String) { started += stepId }
+        override fun startWhiteNoise(soundId: String, duration: java.time.Duration) {
+            started += soundId
+        }
         override fun play() { playCount++ }
         override fun pause() { pauseCount++ }
         override fun end() { endCount++ }

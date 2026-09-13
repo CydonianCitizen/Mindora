@@ -1,5 +1,6 @@
 package com.cydoniancitizen.mindora.core.content.di
 
+import com.cydoniancitizen.mindora.core.content.MeditationLibraryRepository
 import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
 import com.cydoniancitizen.mindora.core.content.data.BundledMindfulnessContentRepository
 import dagger.Binds
@@ -14,4 +15,9 @@ abstract class ContentModule {
     abstract fun bindMindfulnessContentRepository(
         repository: BundledMindfulnessContentRepository,
     ): MindfulnessContentRepository
+
+    @Binds
+    abstract fun bindMeditationLibraryRepository(
+        repository: BundledMindfulnessContentRepository,
+    ): MeditationLibraryRepository
 }

@@ -71,7 +71,6 @@ class HistoryScreenTest {
                 HistoryScreen(
                     uiState = HistoryUiState.Content(
                         selectedFilter = HistoryFilter.ALL,
-                        availableFilters = HistoryFilter.entries,
                         monthGroups = listOf(
                             HistoryMonthGroup(
                                 yearMonth = YearMonth.of(2026, 2),
@@ -92,8 +91,6 @@ class HistoryScreenTest {
                                 ),
                             ),
                         ),
-                        totalSessionsCount = 2,
-                        sessions = listOf(session1, session2),
                     ),
                     onFilterSelected = {},
                     onStartPracticeClick = {},
@@ -119,9 +116,7 @@ class HistoryScreenTest {
                 HistoryScreen(
                     uiState = HistoryUiState.Content(
                         selectedFilter = HistoryFilter.ALL,
-                        availableFilters = HistoryFilter.entries,
                         monthGroups = emptyList(),
-                        totalSessionsCount = 1,
                     ),
                     onFilterSelected = { selectedFilter = it },
                     onStartPracticeClick = {},
@@ -144,9 +139,7 @@ class HistoryScreenTest {
                 HistoryScreen(
                     uiState = HistoryUiState.Content(
                         selectedFilter = HistoryFilter.BREATHING_EXERCISE,
-                        availableFilters = HistoryFilter.entries,
                         monthGroups = emptyList(),
-                        totalSessionsCount = 1,
                     ),
                     onFilterSelected = { if (it == HistoryFilter.ALL) cleared = true },
                     onStartPracticeClick = {},

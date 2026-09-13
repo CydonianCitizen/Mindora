@@ -85,7 +85,9 @@ internal fun containerExit(): ExitTransition = fadeOut(tween(CONTAINER_MILLIS, e
 /** Keys pairing a card on the practice screen with the screen it grows into. */
 internal object ContainerKeys {
     const val FREE_MEDITATION = "container:free-meditation"
+    const val WHITE_NOISE = "container:white-noise"
     const val BREATHING_EXERCISE = "container:breathing-exercise"
+    const val LIBRARY = "container:library"
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)

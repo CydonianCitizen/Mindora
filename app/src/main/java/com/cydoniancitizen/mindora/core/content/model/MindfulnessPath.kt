@@ -6,3 +6,9 @@ data class MindfulnessPath(
     val description: String,
     val steps: List<MindfulnessStep>,
 )
+
+/** Everything the bundled catalogue holds: ordered paths, plus the standalone meditation library. */
+data class MindfulnessCatalogue(
+    val paths: List<MindfulnessPath>,
+    val meditations: List<LibraryMeditation>,
+)

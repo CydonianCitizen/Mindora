@@ -14,20 +14,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -52,13 +49,16 @@ import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.ui.BreathEasing
 import com.cydoniancitizen.mindora.ui.MindoraTopAppBar
 import com.cydoniancitizen.mindora.ui.endlessMotionAllowed
+import com.cydoniancitizen.mindora.ui.session.EndSessionDialog
 import com.cydoniancitizen.mindora.ui.session.LinkedStepLoading
 import com.cydoniancitizen.mindora.ui.session.LinkedStepUnavailable
 import com.cydoniancitizen.mindora.ui.session.SessionHaptics
 import com.cydoniancitizen.mindora.ui.session.SessionHapticsViewModel
 import com.cydoniancitizen.mindora.ui.session.SessionSaveFailed
 import com.cydoniancitizen.mindora.ui.session.SessionSaving
-import com.cydoniancitizen.mindora.ui.session.SessionStateColumn
+import com.cydoniancitizen.mindora.ui.session.SessionStage
+import com.cydoniancitizen.mindora.ui.session.SessionStageMetrics
+import com.cydoniancitizen.mindora.ui.session.SessionFinished
 import com.cydoniancitizen.mindora.ui.session.breathingHapticWaveform
 import com.cydoniancitizen.mindora.ui.softGlow
 import com.cydoniancitizen.mindora.ui.systemAnimationsEnabled
@@ -199,8 +199,15 @@ internal fun BreathingExerciseScreen(
                 )
 
                 is BreathingExerciseUiState.Saving -> SessionSaving()
-                is BreathingExerciseUiState.Finished -> FinishedContent(
-                    state = uiState,
+                is BreathingExerciseUiState.Finished -> SessionFinished(
+                    title = stringResource(
+                        if (uiState.savedSessionStatus == MindfulnessSessionStatus.COMPLETED) {
+                            R.string.breathing_completed_result
+                        } else {
+                            R.string.breathing_interrupted_result
+                        },
+                    ),
+                    activeDuration = formatRemaining(uiState.activeDuration),
                     onDone = onDone,
                 )
 
@@ -216,9 +223,13 @@ internal fun BreathingExerciseScreen(
         (uiState is BreathingExerciseUiState.Running && uiState.confirmEnd) ||
         (uiState is BreathingExerciseUiState.Paused && uiState.confirmEnd)
     ) {
-        EndExerciseDialog(
-            onDismiss = onDismissEnd,
+        EndSessionDialog(
+            title = stringResource(R.string.end_breathing_exercise_title),
+            message = stringResource(R.string.end_breathing_exercise_message),
+            confirmLabel = stringResource(R.string.end_exercise),
+            dismissLabel = stringResource(R.string.continue_exercise),
             onConfirm = onConfirmEnd,
+            onDismiss = onDismissEnd,
         )
     }
 }
@@ -228,53 +239,52 @@ private fun SetupContent(
     state: BreathingExerciseUiState.Setup,
     onStart: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val linkedContent = state.linkedContent
-        Text(
-            text = linkedContent?.title ?: stringResource(R.string.breathing_exercise),
-            modifier = Modifier.semantics { heading() },
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Text(
-            text = linkedContent?.description
-                ?: stringResource(R.string.breathing_exercise_description),
-            modifier = Modifier.padding(top = 12.dp),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Text(
-            text = pluralStringResource(
-                R.plurals.breathing_cycle_count,
-                state.totalCycles,
-                state.totalCycles,
-            ),
-            modifier = Modifier.padding(top = 24.dp),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            text = pluralStringResource(
-                R.plurals.breathing_approximate_duration,
-                state.plannedDuration.seconds.toInt(),
-                state.plannedDuration.seconds,
-            ),
-            modifier = Modifier.padding(top = 8.dp),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-        Button(
-            onClick = onStart,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(R.string.start))
-        }
-    }
+    val linkedContent = state.linkedContent
+    SessionStage(
+        circle = { RestingBreathingCircle() },
+        above = {
+            Text(
+                text = linkedContent?.title ?: stringResource(R.string.breathing_exercise),
+                modifier = Modifier.semantics { heading() },
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                text = linkedContent?.description
+                    ?: stringResource(R.string.breathing_exercise_description),
+                modifier = Modifier.padding(top = 12.dp),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        below = {
+            Text(
+                text = pluralStringResource(
+                    R.plurals.breathing_cycle_count,
+                    state.totalCycles,
+                    state.totalCycles,
+                ),
+                modifier = Modifier.padding(top = 24.dp),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.breathing_approximate_duration,
+                    state.plannedDuration.seconds.toInt(),
+                    state.plannedDuration.seconds,
+                ),
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = onStart,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.start))
+            }
+        },
+    )
 }
 
 @Composable
@@ -309,38 +319,40 @@ private fun SessionContent(
         phaseRemainingLabel,
     )
 
-    SessionStateColumn {
-        Text(
-            text = status,
-            modifier = Modifier.testTag(BreathingTestTags.STATUS_TEXT),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-        Column(
-            modifier = Modifier.clearAndSetSemantics {
-                contentDescription = guideDescription
-            },
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+    SessionStage(
+        // The circle carries the whole phase summary, so the three lines it stands between are
+        // read once, as one sentence, rather than three times as they each tick.
+        circle = {
+            BreathingGuide(
+                phase = phase,
+                phaseProgress = phaseProgress,
+                description = guideDescription,
+            )
+        },
+        above = {
+            Text(
+                text = status,
+                modifier = Modifier.testTag(BreathingTestTags.STATUS_TEXT),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
             Text(
                 text = cycleLabel,
                 modifier = Modifier
-                    .padding(top = 8.dp)
-                    .testTag(BreathingTestTags.CYCLE_TEXT),
+                    .padding(top = 8.dp, bottom = 8.dp)
+                    .clearAndSetSemantics { testTag = BreathingTestTags.CYCLE_TEXT },
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
             )
-            BreathingGuide(
-                phase = phase,
-                phaseProgress = phaseProgress,
-            )
+        },
+        below = {
             Text(
                 text = phaseLabel,
                 modifier = Modifier
                     .padding(top = 20.dp)
-                    .testTag(BreathingTestTags.PHASE_TEXT),
+                    .clearAndSetSemantics { testTag = BreathingTestTags.PHASE_TEXT },
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -349,40 +361,40 @@ private fun SessionContent(
                 text = phaseCountdown,
                 modifier = Modifier
                     .padding(top = 8.dp)
-                    .testTag(BreathingTestTags.COUNTDOWN_TEXT),
+                    .clearAndSetSemantics { testTag = BreathingTestTags.COUNTDOWN_TEXT },
                 style = MaterialTheme.typography.displayMedium.tabularNumerals(),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
             )
-        }
-        Text(
-            text = totalRemainingLabel,
-            modifier = Modifier
-                .padding(top = 12.dp)
-                .testTag(BreathingTestTags.TOTAL_REMAINING_TEXT),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
-        Button(
-            onClick = onPrimaryAction,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 28.dp)
-                .testTag(BreathingTestTags.PRIMARY_BUTTON),
-        ) {
-            Text(primaryActionLabel)
-        }
-        OutlinedButton(
-            onClick = onRequestEnd,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp)
-                .testTag(BreathingTestTags.END_BUTTON),
-        ) {
-            Text(stringResource(R.string.end))
-        }
-    }
+            Text(
+                text = totalRemainingLabel,
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .testTag(BreathingTestTags.TOTAL_REMAINING_TEXT),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+            Button(
+                onClick = onPrimaryAction,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 28.dp)
+                    .testTag(BreathingTestTags.PRIMARY_BUTTON),
+            ) {
+                Text(primaryActionLabel)
+            }
+            OutlinedButton(
+                onClick = onRequestEnd,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .testTag(BreathingTestTags.END_BUTTON),
+            ) {
+                Text(stringResource(R.string.end))
+            }
+        },
+    )
 }
 
 internal object BreathingTestTags {
@@ -404,6 +416,7 @@ internal var SemanticsPropertyReceiver.visualScale by VisualScaleSemanticsKey
 private fun BreathingGuide(
     phase: BreathingPhase,
     phaseProgress: Float,
+    description: String,
     modifier: Modifier = Modifier,
 ) {
     val openness = if (!systemAnimationsEnabled()) {
@@ -437,11 +450,75 @@ private fun BreathingGuide(
             animatedOpenness.snapTo(openness)
         }
     }
-    val minScale = MIN_CIRCLE.value / MAX_CIRCLE.value
-    // No hard rim: the disc is solid at the core and dissolves into the surface behind it, so the
-    // breath reads as something expanding rather than as a shape being resized.
+    val glow = rememberBreathGlow()
+
+    Box(
+        modifier = modifier
+            .size(SessionStageMetrics.BreathingCircle)
+            .testTag(BreathingTestTags.CONTAINER),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                // Read inside the lambda so a frame re-runs the layer, never the composable.
+                .graphicsLayer {
+                    val scale = circleScale(animatedOpenness.value)
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .background(glow)
+                // The tag goes inside the cleared block, not after it: clearAndSetSemantics
+                // replaces the whole configuration, so a testTag chained afterwards is thrown
+                // away and the circle becomes unreachable from a test in either tree.
+                .clearAndSetSemantics {
+                    contentDescription = description
+                    testTag = BreathingTestTags.CIRCLE
+                    visualScale = circleScale(animatedOpenness.value)
+                },
+        )
+    }
+}
+
+/**
+ * The disc the exercise breathes, held still.
+ *
+ * It sits behind the setup screen so the practice is already on screen before it starts: the same
+ * shape, in the same place, at exactly the size the first frame of the exercise draws. Tapping
+ * start therefore leaves the disc where it is and grows it from there, instead of resizing it
+ * first. Decorative, so it carries neither a test tag nor anything for a screen reader to announce.
+ */
+@Composable
+private fun RestingBreathingCircle(modifier: Modifier = Modifier) {
+    val glow = rememberBreathGlow()
+    // The exercise opens on an inhale from nothing, unless motion is off — then it holds half open,
+    // and so does this.
+    val scale = circleScale(if (systemAnimationsEnabled()) 0f else HELD_OPENNESS)
+    Box(
+        modifier = modifier.size(SessionStageMetrics.BreathingCircle),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .background(glow)
+                .clearAndSetSemantics {},
+        )
+    }
+}
+
+/**
+ * No hard rim: the disc is solid at the core and dissolves into the surface behind it, so the
+ * breath reads as something expanding rather than as a shape being resized.
+ */
+@Composable
+private fun rememberBreathGlow(): Brush {
     val core = MaterialTheme.colorScheme.primaryContainer
-    val glow = remember(core) {
+    return remember(core) {
         softGlow(
             color = core,
             0.00f to 1f,
@@ -451,109 +528,18 @@ private fun BreathingGuide(
             1.00f to 0f,
         )
     }
-
-    Box(
-        modifier = modifier
-            .padding(top = 24.dp)
-            .size(MAX_CIRCLE)
-            .testTag(BreathingTestTags.CONTAINER),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                // Read inside the lambda so a frame re-runs the layer, never the composable.
-                .graphicsLayer {
-                    val scale = minScale + (1f - minScale) * animatedOpenness.value
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .background(glow)
-                // The tag goes inside the cleared block, not after it: clearAndSetSemantics
-                // replaces the whole configuration, so a testTag chained afterwards is thrown
-                // away and the circle becomes unreachable from a test in either tree.
-                .clearAndSetSemantics {
-                    testTag = BreathingTestTags.CIRCLE
-                    visualScale = minScale + (1f - minScale) * animatedOpenness.value
-                },
-        )
-    }
 }
 
-private val MAX_CIRCLE = 220.dp
-private val MIN_CIRCLE = 128.dp
+private fun circleScale(openness: Float): Float = MIN_SCALE + (1f - MIN_SCALE) * openness
+
+private val MIN_SCALE =
+    SessionStageMetrics.MinBreathingCircle.value / SessionStageMetrics.BreathingCircle.value
 
 /** Matches BreathingExerciseViewModel's tick, so one report interpolates into the next. */
 private const val BREATHING_TICK_MILLIS = 100
 
 /** Half open, so a circle held still by "Remove animations" does not imply a phase. */
 private const val HELD_OPENNESS = 0.5f
-
-
-@Composable
-private fun FinishedContent(
-    state: BreathingExerciseUiState.Finished,
-    onDone: () -> Unit,
-) {
-    val result = when (state.savedSessionStatus) {
-        MindfulnessSessionStatus.COMPLETED ->
-            stringResource(R.string.breathing_completed_result)
-
-        MindfulnessSessionStatus.INTERRUPTED ->
-            stringResource(R.string.breathing_interrupted_result)
-    }
-    SessionStateColumn {
-        Text(
-            text = result,
-            modifier = Modifier.semantics { heading() },
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        Text(
-            text = stringResource(
-                R.string.active_duration_summary,
-                formatRemaining(state.activeDuration),
-            ),
-            modifier = Modifier.padding(top = 12.dp),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Text(
-            text = stringResource(R.string.session_saved),
-            modifier = Modifier.padding(top = 8.dp),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Button(
-            onClick = onDone,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 32.dp),
-        ) {
-            Text(stringResource(R.string.done))
-        }
-    }
-}
-
-@Composable
-private fun EndExerciseDialog(
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.end_breathing_exercise_title)) },
-        text = { Text(stringResource(R.string.end_breathing_exercise_message)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.end_exercise))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.continue_exercise))
-            }
-        },
-    )
-}
 
 @Composable
 private fun BreathingPhase.label(): String = when (this) {

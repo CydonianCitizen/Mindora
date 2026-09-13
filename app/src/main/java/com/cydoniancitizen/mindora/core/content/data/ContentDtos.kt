@@ -7,6 +7,41 @@ import kotlinx.serialization.Serializable
 internal data class ContentCatalogueDto(
     val schemaVersion: Int,
     val paths: List<MindfulnessPathDto>,
+    val meditations: List<LibraryMeditationDto> = emptyList(),
+)
+
+/**
+ * Text the reader sees, keyed by language tag. Assets carry no locale qualifier of their own, so
+ * the catalogue holds every translation and the parser resolves one.
+ */
+internal typealias LocalizedTextDto = Map<String, String>
+
+@Serializable
+internal data class LibraryMeditationDto(
+    val id: String,
+    val title: LocalizedTextDto,
+    val description: LocalizedTextDto,
+    val technique: MeditationTermDto,
+    val category: MeditationTermDto,
+    val goal: MeditationTermDto,
+    val durationMinutes: Int,
+    val level: String,
+    val steps: List<LibraryMeditationStepDto>,
+    val safetyNotes: LocalizedTextDto? = null,
+    val tags: List<LocalizedTextDto> = emptyList(),
+    val audioAsset: String? = null,
+)
+
+@Serializable
+internal data class LibraryMeditationStepDto(
+    val text: LocalizedTextDto,
+    val durationSeconds: Int? = null,
+)
+
+@Serializable
+internal data class MeditationTermDto(
+    val id: String,
+    val label: LocalizedTextDto,
 )
 
 @Serializable

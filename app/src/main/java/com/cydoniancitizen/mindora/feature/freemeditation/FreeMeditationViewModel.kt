@@ -3,8 +3,10 @@ package com.cydoniancitizen.mindora.feature.freemeditation
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cydoniancitizen.mindora.core.content.MeditationLibraryRepository
 import com.cydoniancitizen.mindora.core.content.MindfulnessContentRepository
 import com.cydoniancitizen.mindora.core.content.decodeContentRouteId
+import com.cydoniancitizen.mindora.core.content.findMeditation
 import com.cydoniancitizen.mindora.core.content.findStep
 import com.cydoniancitizen.mindora.core.content.model.FreeMeditationStep
 import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
@@ -31,6 +33,7 @@ import kotlinx.coroutines.launch
 class FreeMeditationViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val contentRepository: MindfulnessContentRepository,
+    private val libraryRepository: MeditationLibraryRepository,
     private val repository: MindfulnessSessionRepository,
     private val timeSource: SessionTimeSource,
 ) : ViewModel() {
@@ -74,6 +77,7 @@ class FreeMeditationViewModel @Inject constructor(
             resumedAtElapsedRealtimeMillis = elapsedRealtime,
             activeDuration = Duration.ZERO,
             remainingDuration = setup.selectedDuration,
+            steps = setup.linkedContent?.steps.orEmpty(),
         )
         startTicker()
     }
@@ -91,6 +95,7 @@ class FreeMeditationViewModel @Inject constructor(
             startedAt = running.startedAt,
             activeDuration = activeDuration,
             remainingDuration = running.plannedDuration.minus(activeDuration),
+            steps = running.steps,
         )
     }
 
@@ -103,6 +108,7 @@ class FreeMeditationViewModel @Inject constructor(
             resumedAtElapsedRealtimeMillis = timeSource.elapsedRealtimeMillis(),
             activeDuration = paused.activeDuration,
             remainingDuration = paused.remainingDuration,
+            steps = paused.steps,
         )
         startTicker()
     }
@@ -282,6 +288,27 @@ class FreeMeditationViewModel @Inject constructor(
         return running.accumulatedActiveDuration.plusMillis(runningSegmentMillis)
     }
 
+    /**
+     * Resolves a library meditation into the same linked setup a path step produces. A library
+     * meditation has no path around it, so the saved session records only the step id.
+     */
+    private suspend fun libraryMeditation(requestedId: String): FreeMeditationUiState? {
+        val meditations = libraryRepository.getMeditations()
+        val meditation = meditations.findMeditation(requestedId)
+            ?: decodeContentRouteId(requestedId)?.let(meditations::findMeditation)
+            ?: return null
+        val details = LinkedFreeMeditationDetails(
+            pathId = null,
+            stepId = meditation.id,
+            title = meditation.title,
+            description = meditation.description,
+            plannedDuration = Duration.ofMinutes(meditation.durationMinutes.toLong()),
+            steps = meditation.steps,
+        )
+        linkedContent = details
+        return FreeMeditationUiState.Setup(linkedContent = details)
+    }
+
     private fun resolveContent() {
         val requestedStepId = stepId
         if (requestedStepId.isNullOrBlank()) {
@@ -295,7 +322,10 @@ class FreeMeditationViewModel @Inject constructor(
                     ?: decodeContentRouteId(requestedStepId)?.let(paths::findStep)
                 val step = located?.step as? FreeMeditationStep
                 if (located == null || step == null) {
-                    FreeMeditationUiState.Unavailable
+                    // Not a path step: the id may name a meditation from the library, which runs
+                    // on this same timer until its audio is bundled.
+                    libraryMeditation(requestedStepId)
+                        ?: FreeMeditationUiState.Unavailable
                 } else {
                     val details = LinkedFreeMeditationDetails(
                         pathId = located.path.id,

@@ -39,8 +39,12 @@ internal fun validateForPersistence(session: MindfulnessSession) {
     }
     validateOptionalId(session.sourcePathId, "Source path ID")
     validateOptionalId(session.sourceStepId, "Source step ID")
-    require(session.sourceStepId == null || session.sourcePathId != null) {
-        "Source step ID requires a source path ID."
+    // The source step id names the bundled content the session ran: a path step or a standalone
+    // library meditation. The source path id is only the container that step sits in, so it is
+    // absent for a library meditation, which stands on its own. A path id without a step id names
+    // nothing and never occurs, so that is the combination we reject.
+    require(session.sourcePathId == null || session.sourceStepId != null) {
+        "Source path ID requires a source step ID."
     }
 }
 

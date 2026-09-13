@@ -24,27 +24,22 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -59,14 +54,17 @@ import com.cydoniancitizen.mindora.R
 import com.cydoniancitizen.mindora.feature.breathing.ProductionBreathingExerciseConfig
 import com.cydoniancitizen.mindora.navigation.ContainerKeys
 import com.cydoniancitizen.mindora.navigation.sharedContainer
+import com.cydoniancitizen.mindora.ui.MindoraBrandTopAppBar
 import java.time.Duration
 import java.time.LocalTime
 
 @Composable
 fun PracticeScreen(
     onFreeMeditationClick: () -> Unit,
+    onWhiteNoiseClick: () -> Unit,
     onBreathingExerciseClick: () -> Unit,
     onPathClick: (String) -> Unit,
+    onLibraryClick: () -> Unit,
     viewModel: PracticeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -82,12 +80,13 @@ fun PracticeScreen(
         uiState = uiState,
         onRetry = viewModel::retry,
         onFreeMeditationClick = onFreeMeditationClick,
+        onWhiteNoiseClick = onWhiteNoiseClick,
         onBreathingExerciseClick = onBreathingExerciseClick,
         onPathClick = onPathClick,
+        onLibraryClick = onLibraryClick,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PracticeScreen(
     uiState: PracticeUiState,
@@ -96,6 +95,8 @@ internal fun PracticeScreen(
     onBreathingExerciseClick: () -> Unit,
     onPathClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onWhiteNoiseClick: () -> Unit = {},
+    onLibraryClick: () -> Unit = {},
 ) {
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val isWideScreen = screenWidthDp >= 600
@@ -112,29 +113,7 @@ internal fun PracticeScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_mindfulness_reminder),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        )
+        MindoraBrandTopAppBar()
 
         Box(
             modifier = Modifier
@@ -176,61 +155,64 @@ internal fun PracticeScreen(
                 }
 
                 item {
+                    val freeMeditationCard: @Composable (Modifier) -> Unit = { cardModifier ->
+                        PracticeActionCard(
+                            title = stringResource(R.string.free_meditation),
+                            description = stringResource(R.string.free_meditation_description),
+                            icon = Icons.Filled.PlayArrow,
+                            onClick = onFreeMeditationClick,
+                            modifier = cardModifier.sharedContainer(ContainerKeys.FREE_MEDITATION),
+                        )
+                    }
+                    val breathingCard: @Composable (Modifier) -> Unit = { cardModifier ->
+                        PracticeActionCard(
+                            title = stringResource(R.string.breathing_exercise),
+                            description = stringResource(R.string.breathing_exercise_description),
+                            chipLabel = breathingDurationLabel,
+                            icon = Icons.Filled.Favorite,
+                            onClick = onBreathingExerciseClick,
+                            modifier = cardModifier.sharedContainer(ContainerKeys.BREATHING_EXERCISE),
+                        )
+                    }
                     if (isWideScreen) {
+                        // Side by side at the taller one's height.
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(IntrinsicSize.Min),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            PracticeActionCard(
-                                title = stringResource(R.string.free_meditation),
-                                description = stringResource(R.string.free_meditation_description),
-                                icon = Icons.Filled.PlayArrow,
-                                onClick = onFreeMeditationClick,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .sharedContainer(ContainerKeys.FREE_MEDITATION),
-                            )
-                            PracticeActionCard(
-                                title = stringResource(R.string.breathing_exercise),
-                                description = stringResource(R.string.breathing_exercise_description),
-                                chipLabel = breathingDurationLabel,
-                                icon = Icons.Filled.Favorite,
-                                onClick = onBreathingExerciseClick,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .sharedContainer(ContainerKeys.BREATHING_EXERCISE),
-                            )
+                            freeMeditationCard(Modifier.weight(1f).fillMaxHeight())
+                            breathingCard(Modifier.weight(1f).fillMaxHeight())
                         }
                     } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            PracticeActionCard(
-                                title = stringResource(R.string.free_meditation),
-                                description = stringResource(R.string.free_meditation_description),
-                                icon = Icons.Filled.PlayArrow,
-                                onClick = onFreeMeditationClick,
-                                modifier = Modifier.sharedContainer(
-                                    ContainerKeys.FREE_MEDITATION,
-                                ),
-                            )
-                            PracticeActionCard(
-                                title = stringResource(R.string.breathing_exercise),
-                                description = stringResource(R.string.breathing_exercise_description),
-                                chipLabel = breathingDurationLabel,
-                                icon = Icons.Filled.Favorite,
-                                onClick = onBreathingExerciseClick,
-                                modifier = Modifier.sharedContainer(
-                                    ContainerKeys.BREATHING_EXERCISE,
-                                ),
-                            )
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            freeMeditationCard(Modifier)
+                            breathingCard(Modifier)
                         }
                     }
+                }
+
+                item {
+                    PracticeActionCard(
+                        title = stringResource(R.string.white_noise),
+                        description = stringResource(R.string.white_noise_description),
+                        icon = Icons.Filled.PlayArrow,
+                        onClick = onWhiteNoiseClick,
+                        modifier = Modifier.sharedContainer(ContainerKeys.WHITE_NOISE),
+                    )
+                }
+
+                // Full width in both layouts: the library opens a screen of its own rather
+                // than starting a session, so it does not sit in the pair above.
+                item {
+                    PracticeActionCard(
+                        title = stringResource(R.string.library),
+                        description = stringResource(R.string.library_description),
+                        icon = ImageVector.vectorResource(R.drawable.ic_library),
+                        onClick = onLibraryClick,
+                        modifier = Modifier.sharedContainer(ContainerKeys.LIBRARY),
+                    )
                 }
 
                 item {
@@ -351,29 +333,14 @@ fun CircularGoalProgress(
     centerText: String?,
     modifier: Modifier = Modifier,
 ) {
-    val coercedProgress = progressFraction.coerceIn(0f, 1f)
-    val strokeWidth = 6.dp
-    val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-    val progressColor = MaterialTheme.colorScheme.primary
-
+    // Material's own track, cap and gap: the component already draws the whole ring.
     Box(
         modifier = modifier.size(64.dp),
         contentAlignment = Alignment.Center,
     ) {
         CircularProgressIndicator(
-            progress = { 1f },
+            progress = { progressFraction },
             modifier = Modifier.fillMaxSize(),
-            color = trackColor,
-            strokeWidth = strokeWidth,
-            trackColor = Color.Transparent,
-        )
-        CircularProgressIndicator(
-            progress = { coercedProgress },
-            modifier = Modifier.fillMaxSize(),
-            color = progressColor,
-            strokeWidth = strokeWidth,
-            trackColor = Color.Transparent,
-            strokeCap = StrokeCap.Round,
         )
         if (centerText != null) {
             Text(

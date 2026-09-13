@@ -36,8 +36,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -56,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.R
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
+import com.cydoniancitizen.mindora.ui.MindoraBrandTopAppBar
 import com.cydoniancitizen.mindora.ui.theme.tabularNumerals
 import java.time.Duration
 import java.time.YearMonth
@@ -77,7 +76,6 @@ fun HistoryScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HistoryScreen(
     uiState: HistoryUiState,
@@ -87,29 +85,7 @@ internal fun HistoryScreen(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_mindfulness_reminder),
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            MindoraBrandTopAppBar()
 
             Box(
                 modifier = Modifier
@@ -138,7 +114,6 @@ internal fun HistoryScreen(
                         is HistoryUiState.Content -> {
                             HistoryFilterBar(
                                 selectedFilter = uiState.selectedFilter,
-                                availableFilters = uiState.availableFilters,
                                 onFilterSelected = onFilterSelected,
                             )
 
@@ -185,7 +160,6 @@ private fun HistoryHeaderSection() {
 @Composable
 private fun HistoryFilterBar(
     selectedFilter: HistoryFilter,
-    availableFilters: List<HistoryFilter>,
     onFilterSelected: (HistoryFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -197,13 +171,14 @@ private fun HistoryFilterBar(
             .padding(horizontal = 24.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        availableFilters.forEach { filter ->
+        HistoryFilter.entries.forEach { filter ->
             val isSelected = filter == selectedFilter
             val label = when (filter) {
                 HistoryFilter.ALL -> stringResource(R.string.history_filter_all)
                 HistoryFilter.GUIDED_MEDITATION -> stringResource(R.string.history_filter_guided)
                 HistoryFilter.FREE_MEDITATION -> stringResource(R.string.history_filter_free)
                 HistoryFilter.BREATHING_EXERCISE -> stringResource(R.string.history_filter_breathing)
+                HistoryFilter.WHITE_NOISE -> stringResource(R.string.history_filter_white_noise)
             }
             FilterChip(
                 selected = isSelected,
@@ -334,6 +309,13 @@ private fun HistorySessionRow(
             MaterialTheme.colorScheme.tertiaryContainer,
             MaterialTheme.colorScheme.onTertiaryContainer,
             R.string.session_type_breathing_exercise,
+        )
+
+        MindfulnessSessionType.WHITE_NOISE -> Quadruple(
+            Icons.Default.PlayArrow,
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer,
+            R.string.session_type_white_noise,
         )
     }
 

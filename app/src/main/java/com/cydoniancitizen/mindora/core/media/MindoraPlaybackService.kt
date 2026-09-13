@@ -26,6 +26,7 @@ import com.cydoniancitizen.mindora.core.session.MindfulnessSessionRepository
 import com.cydoniancitizen.mindora.core.session.SessionTimeSource
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSession
 import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionStatus
+import com.cydoniancitizen.mindora.core.session.model.MindfulnessSessionType
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
@@ -49,9 +50,15 @@ class MindoraPlaybackService : MediaSessionService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var player: ExoPlayer
     private lateinit var mediaSession: MediaSession
-    private var runtime: GuidedSessionRuntime? = null
+    private var runtime: PlaybackSessionRuntime? = null
     private var loadJob: Job? = null
-    private var phase = ServicePhase.IDLE
+    private val whiteNoiseCountdown = SessionCountdown {
+        finalizeSession(
+            status = MindfulnessSessionStatus.COMPLETED,
+            cause = FinalizationCause.NORMAL,
+        )
+    }
+    private var phase = PlaybackPhase.IDLE
     private var finalizationCause = FinalizationCause.NORMAL
     private var terminalSession: MindfulnessSession? = null
     private var playbackFailureStepId: String? = null
@@ -129,7 +136,11 @@ class MindoraPlaybackService : MediaSessionService() {
             }
             val accepted = when (customCommand) {
                 GuidedPlaybackProtocol.LOAD -> {
-                    args.getString(GuidedPlaybackProtocol.STEP_ID)?.let(::load) != null
+                    val contentId = args.getString(GuidedPlaybackProtocol.STEP_ID)
+                    val kind = args.getString(GuidedPlaybackProtocol.CONTENT_KIND)
+                        ?: GuidedPlaybackProtocol.KIND_GUIDED
+                    val durationMillis = args.getLong(GuidedPlaybackProtocol.DURATION_MILLIS, 0L)
+                    contentId != null && load(contentId, kind, durationMillis)
                 }
                 GuidedPlaybackProtocol.END -> requestEarlyEnd()
                 GuidedPlaybackProtocol.RETRY_SAVE -> retrySave()
@@ -184,23 +195,27 @@ class MindoraPlaybackService : MediaSessionService() {
         super.onDestroy()
     }
 
-    private fun load(stepId: String): Boolean {
-        if (phase == ServicePhase.PLAYBACK_FAILED && !interruptedSessionSaved) {
+    private fun load(contentId: String, kind: String, durationMillis: Long): Boolean {
+        if (phase == PlaybackPhase.PLAYBACK_FAILED && !interruptedSessionSaved) {
             resetPlayback()
         }
-        if (phase != ServicePhase.IDLE || loadJob?.isActive == true) return false
+        if (phase != PlaybackPhase.IDLE || loadJob?.isActive == true) return false
 
-        phase = ServicePhase.PREPARING
-        playbackFailureStepId = stepId
+        phase = PlaybackPhase.PREPARING
+        playbackFailureStepId = contentId
         publishState()
         val startedAt = timeSource.nowInstant()
         loadJob = serviceScope.launch {
             try {
-                val meditation = contentRepository.findGuidedMeditation(stepId)
-                    ?: return@launch showPlaybackFailure(stepId)
-                verifyAsset(meditation)
-                runtime = GuidedSessionRuntime(
-                    meditation = meditation,
+                val prepared = when (kind) {
+                    GuidedPlaybackProtocol.KIND_WHITE_NOISE ->
+                        prepareWhiteNoise(contentId, durationMillis)
+                    else -> prepareGuided(contentId)
+                } ?: return@launch showPlaybackFailure(contentId)
+
+                verifyAsset(prepared.assetPath)
+                runtime = PlaybackSessionRuntime(
+                    identity = prepared.identity,
                     startedAt = startedAt,
                     timeSource = timeSource,
                     repository = sessionRepository,
@@ -208,33 +223,72 @@ class MindoraPlaybackService : MediaSessionService() {
                 playbackFailureStepId = null
                 interruptedSessionSaved = false
                 terminalSession = null
-                player.setMediaItem(meditation.toMediaItem())
+                // Set explicitly for every load: a White Noise session leaves the player on
+                // REPEAT_MODE_ONE, and the next guided meditation must not inherit it.
+                player.repeatMode = prepared.repeatMode
+                player.setMediaItem(prepared.mediaItem)
                 player.prepare()
                 player.play()
+                prepared.loopDuration?.let { whiteNoiseCountdown.start(serviceScope, it) }
                 publishPlayerPhase()
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                showPlaybackFailure(stepId)
+                showPlaybackFailure(contentId)
             }
         }
         return true
     }
 
-    private suspend fun verifyAsset(meditation: ResolvedGuidedMeditation) {
+    private suspend fun prepareGuided(stepId: String): PreparedContent? {
+        val meditation = contentRepository.findGuidedMeditation(stepId) ?: return null
+        return PreparedContent(
+            identity = PlaybackSessionIdentity(
+                type = MindfulnessSessionType.GUIDED_MEDITATION,
+                sourcePathId = meditation.pathId,
+                sourceStepId = meditation.step.id,
+                plannedDuration = Duration.ofSeconds(meditation.step.durationSeconds.toLong()),
+            ),
+            assetPath = meditation.step.audioAsset,
+            mediaItem = meditation.toMediaItem(),
+            repeatMode = Player.REPEAT_MODE_OFF,
+            loopDuration = null,
+        )
+    }
+
+    private fun prepareWhiteNoise(soundId: String, durationMillis: Long): PreparedContent? {
+        if (durationMillis <= 0L) return null
+        val sound = WhiteNoiseCatalog.find(soundId) ?: return null
+        val plannedDuration = Duration.ofMillis(durationMillis)
+        return PreparedContent(
+            identity = PlaybackSessionIdentity(
+                type = MindfulnessSessionType.WHITE_NOISE,
+                sourcePathId = null,
+                sourceStepId = sound.id,
+                plannedDuration = plannedDuration,
+            ),
+            assetPath = sound.audioAsset,
+            mediaItem = sound.toMediaItem(),
+            repeatMode = Player.REPEAT_MODE_ONE,
+            loopDuration = plannedDuration,
+        )
+    }
+
+    private suspend fun verifyAsset(assetPath: String) {
         withContext(Dispatchers.IO) {
-            assets.open(meditation.step.audioAsset).use { stream ->
+            assets.open(assetPath).use { stream ->
                 stream.read()
             }
         }
     }
 
+    private fun assetUri(assetPath: String): Uri = Uri.Builder()
+        .scheme(ASSET_SCHEME)
+        .authority("")
+        .apply { assetPath.split('/').forEach(::appendPath) }
+        .build()
+
     private fun ResolvedGuidedMeditation.toMediaItem(): MediaItem {
-        val assetUri = Uri.Builder()
-            .scheme(ASSET_SCHEME)
-            .authority("")
-            .apply { step.audioAsset.split('/').forEach(::appendPath) }
-            .build()
         val metadata = MediaMetadata.Builder()
             .setTitle(step.title)
             .setSubtitle(getString(R.string.session_type_guided_meditation))
@@ -245,10 +299,33 @@ class MindoraPlaybackService : MediaSessionService() {
             .build()
         return MediaItem.Builder()
             .setMediaId(step.id)
-            .setUri(assetUri)
+            .setUri(assetUri(step.audioAsset))
             .setMediaMetadata(metadata)
             .build()
     }
+
+    private fun WhiteNoiseSound.toMediaItem(): MediaItem {
+        val metadata = MediaMetadata.Builder()
+            .setTitle(getString(titleResId))
+            .setSubtitle(getString(R.string.session_type_white_noise))
+            .setArtist(getString(R.string.app_name))
+            .setIsPlayable(true)
+            .build()
+        return MediaItem.Builder()
+            .setMediaId(id)
+            .setUri(assetUri(audioAsset))
+            .setMediaMetadata(metadata)
+            .build()
+    }
+
+    private class PreparedContent(
+        val identity: PlaybackSessionIdentity,
+        val assetPath: String,
+        val mediaItem: MediaItem,
+        val repeatMode: Int,
+        /** Non-null only for a looping sound: how long before the session finalizes itself. */
+        val loopDuration: Duration?,
+    )
 
     private fun requestEarlyEnd(): Boolean {
         val activeRuntime = runtime ?: return false
@@ -281,9 +358,10 @@ class MindoraPlaybackService : MediaSessionService() {
         cause: FinalizationCause,
     ) {
         val activeRuntime = runtime ?: return
-        if (activeRuntime.isFinalized || phase == ServicePhase.SAVING) return
+        if (activeRuntime.isFinalized || phase == PlaybackPhase.SAVING) return
+        whiteNoiseCountdown.cancel()
         finalizationCause = cause
-        phase = ServicePhase.SAVING
+        phase = PlaybackPhase.SAVING
         publishState()
         serviceScope.launch {
             handleSaveResult(activeRuntime.finalize(status))
@@ -292,8 +370,8 @@ class MindoraPlaybackService : MediaSessionService() {
 
     private fun retrySave(): Boolean {
         val activeRuntime = runtime ?: return false
-        if (phase != ServicePhase.SAVE_FAILED || activeRuntime.pendingSession == null) return false
-        phase = ServicePhase.SAVING
+        if (phase != PlaybackPhase.SAVE_FAILED || activeRuntime.pendingSession == null) return false
+        phase = PlaybackPhase.SAVING
         publishState()
         serviceScope.launch {
             handleSaveResult(activeRuntime.retry())
@@ -303,7 +381,7 @@ class MindoraPlaybackService : MediaSessionService() {
 
     private fun discardPendingSave(): Boolean {
         val activeRuntime = runtime ?: return false
-        if (phase != ServicePhase.SAVE_FAILED || !activeRuntime.discard()) return false
+        if (phase != PlaybackPhase.SAVE_FAILED || !activeRuntime.discard()) return false
         resetPlayback()
         publishState()
         return true
@@ -317,37 +395,37 @@ class MindoraPlaybackService : MediaSessionService() {
         return true
     }
 
-    private fun handleSaveResult(result: GuidedSaveResult) {
+    private fun handleSaveResult(result: PlaybackSaveResult) {
         when (result) {
-            is GuidedSaveResult.Saved -> {
+            is PlaybackSaveResult.Saved -> {
                 terminalSession = result.session
                 if (finalizationCause == FinalizationCause.PLAYBACK_ERROR) {
                     interruptedSessionSaved = true
-                    phase = ServicePhase.PLAYBACK_FAILED
+                    phase = PlaybackPhase.PLAYBACK_FAILED
                 } else {
-                    phase = ServicePhase.FINISHED
+                    phase = PlaybackPhase.FINISHED
                 }
             }
-            is GuidedSaveResult.Failed -> {
+            is PlaybackSaveResult.Failed -> {
                 terminalSession = result.session
-                phase = ServicePhase.SAVE_FAILED
+                phase = PlaybackPhase.SAVE_FAILED
             }
-            GuidedSaveResult.NothingToSave -> {
+            PlaybackSaveResult.NothingToSave -> {
                 if (finalizationCause == FinalizationCause.PLAYBACK_ERROR) {
                     interruptedSessionSaved = false
-                    phase = ServicePhase.PLAYBACK_FAILED
+                    phase = PlaybackPhase.PLAYBACK_FAILED
                 } else {
                     resetPlayback()
                 }
             }
-            GuidedSaveResult.Ignored -> return
+            PlaybackSaveResult.Ignored -> return
         }
         publishState()
     }
 
     private fun showPlaybackFailure(stepId: String?) {
         player.pause()
-        phase = ServicePhase.PLAYBACK_FAILED
+        phase = PlaybackPhase.PLAYBACK_FAILED
         playbackFailureStepId = stepId
         interruptedSessionSaved = false
         publishState()
@@ -356,22 +434,24 @@ class MindoraPlaybackService : MediaSessionService() {
     private fun resetPlayback() {
         loadJob?.cancel()
         loadJob = null
-        phase = ServicePhase.IDLE
+        whiteNoiseCountdown.cancel()
+        phase = PlaybackPhase.IDLE
         runtime = null
         terminalSession = null
         playbackFailureStepId = null
         interruptedSessionSaved = false
         finalizationCause = FinalizationCause.NORMAL
         player.pause()
+        player.repeatMode = Player.REPEAT_MODE_OFF
         player.clearMediaItems()
     }
 
     private fun publishPlayerPhase() {
         if (phase !in ACTIVE_PHASES) return
         phase = when {
-            player.isPlaying -> ServicePhase.PLAYING
-            player.playbackState == Player.STATE_BUFFERING -> ServicePhase.PREPARING
-            player.playbackState == Player.STATE_READY -> ServicePhase.PAUSED
+            player.isPlaying -> PlaybackPhase.PLAYING
+            player.playbackState == Player.STATE_BUFFERING -> PlaybackPhase.PREPARING
+            player.playbackState == Player.STATE_READY -> PlaybackPhase.PAUSED
             else -> phase
         }
         publishState()
@@ -382,10 +462,10 @@ class MindoraPlaybackService : MediaSessionService() {
     }
 
     private fun runtimeExtras(): Bundle = Bundle().apply {
-        putString(GuidedPlaybackProtocol.PHASE, phase.protocolValue)
+        putString(GuidedPlaybackProtocol.PHASE, phase.name)
         putString(
             GuidedPlaybackProtocol.STEP_ID,
-            runtime?.meditation?.step?.id ?: playbackFailureStepId,
+            runtime?.identity?.sourceStepId ?: playbackFailureStepId,
         )
         putLong(
             GuidedPlaybackProtocol.ACTIVE_DURATION_MILLIS,
@@ -399,17 +479,6 @@ class MindoraPlaybackService : MediaSessionService() {
         putBoolean(GuidedPlaybackProtocol.INTERRUPTED_SAVED, interruptedSessionSaved)
     }
 
-    private enum class ServicePhase(val protocolValue: String) {
-        IDLE(GuidedPlaybackProtocol.PHASE_IDLE),
-        PREPARING(GuidedPlaybackProtocol.PHASE_PREPARING),
-        PLAYING(GuidedPlaybackProtocol.PHASE_PLAYING),
-        PAUSED(GuidedPlaybackProtocol.PHASE_PAUSED),
-        SAVING(GuidedPlaybackProtocol.PHASE_SAVING),
-        FINISHED(GuidedPlaybackProtocol.PHASE_FINISHED),
-        SAVE_FAILED(GuidedPlaybackProtocol.PHASE_SAVE_FAILED),
-        PLAYBACK_FAILED(GuidedPlaybackProtocol.PHASE_PLAYBACK_FAILED),
-    }
-
     private enum class FinalizationCause {
         NORMAL,
         PLAYBACK_ERROR,
@@ -419,13 +488,13 @@ class MindoraPlaybackService : MediaSessionService() {
         const val ASSET_SCHEME = "asset"
 
         val ACTIVE_PHASES = setOf(
-            ServicePhase.PREPARING,
-            ServicePhase.PLAYING,
-            ServicePhase.PAUSED,
+            PlaybackPhase.PREPARING,
+            PlaybackPhase.PLAYING,
+            PlaybackPhase.PAUSED,
         )
         val TERMINAL_PHASES = setOf(
-            ServicePhase.FINISHED,
-            ServicePhase.PLAYBACK_FAILED,
+            PlaybackPhase.FINISHED,
+            PlaybackPhase.PLAYBACK_FAILED,
         )
 
     }

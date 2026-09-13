@@ -47,10 +47,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,7 +59,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -75,8 +71,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cydoniancitizen.mindora.BuildConfig
 import com.cydoniancitizen.mindora.R
@@ -84,6 +79,7 @@ import com.cydoniancitizen.mindora.core.export.defaultExportFileName
 import com.cydoniancitizen.mindora.core.preferences.model.supportedWeeklyGoalMinutes
 import com.cydoniancitizen.mindora.core.reminder.notificationsAllowed
 import com.cydoniancitizen.mindora.core.reminder.reminderNotificationSettingsIntent
+import com.cydoniancitizen.mindora.ui.MindoraBrandTopAppBar
 import com.cydoniancitizen.mindora.ui.session.rememberSessionVibrator
 import java.time.LocalTime
 import java.util.Calendar
@@ -92,7 +88,6 @@ import kotlin.math.roundToInt
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var systemNotificationsAllowed by remember { mutableStateOf(notificationsAllowed(context)) }
     var language by remember { mutableStateOf(currentAppLanguage(context)) }
@@ -109,17 +104,11 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
     }
 
-    DisposableEffect(lifecycleOwner, context) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                systemNotificationsAllowed = notificationsAllowed(context)
-                if (systemNotificationsAllowed) permissionDenied = false
-                // Both can be changed from system settings while the app is in the background.
-                language = currentAppLanguage(context)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        systemNotificationsAllowed = notificationsAllowed(context)
+        if (systemNotificationsAllowed) permissionDenied = false
+        // Both can be changed from system settings while the app is in the background.
+        language = currentAppLanguage(context)
     }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -165,7 +154,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 
 private const val EXPORT_MIME_TYPE = "application/json"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsScreen(
     uiState: SettingsUiState,
@@ -176,28 +164,7 @@ internal fun SettingsScreen(
     language: AppLanguage = AppLanguage.SYSTEM,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_mindfulness_reminder),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        )
+        MindoraBrandTopAppBar()
         Box(
             modifier = Modifier.fillMaxWidth().weight(1f),
             contentAlignment = Alignment.TopCenter,

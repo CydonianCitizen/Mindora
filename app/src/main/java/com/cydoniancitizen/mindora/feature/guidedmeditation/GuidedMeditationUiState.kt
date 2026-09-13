@@ -11,7 +11,6 @@ data class GuidedMeditationDetails(
     val title: String,
     val description: String,
     val plannedDuration: Duration,
-    val audioAsset: String,
 )
 
 internal fun ResolvedGuidedMeditation.toDetails() = GuidedMeditationDetails(
@@ -20,7 +19,6 @@ internal fun ResolvedGuidedMeditation.toDetails() = GuidedMeditationDetails(
     title = step.title,
     description = step.description,
     plannedDuration = Duration.ofSeconds(step.durationSeconds.toLong()),
-    audioAsset = step.audioAsset,
 )
 
 sealed interface GuidedMeditationUiState {

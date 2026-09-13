@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
@@ -132,6 +134,36 @@ internal fun LinkedStepUnavailable(onBack: () -> Unit) {
 @Composable
 internal fun SessionSaving() {
     SessionProgress(stringResource(R.string.saving_session))
+}
+
+/** The session is saved: how it ended, how long it was active, and the way out. */
+@Composable
+internal fun SessionFinished(title: String, activeDuration: String, onDone: () -> Unit) {
+    SessionMessage(
+        title = title,
+        supportingText = stringResource(R.string.active_duration_summary, activeDuration) +
+            "\n" + stringResource(R.string.session_saved),
+        primaryAction = SessionAction(stringResource(R.string.done), onDone),
+    )
+}
+
+/** Asks before a running session is cut short; dismissing it carries on where the session was. */
+@Composable
+internal fun EndSessionDialog(
+    title: String,
+    message: String,
+    confirmLabel: String,
+    dismissLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(message) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(confirmLabel) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissLabel) } },
+    )
 }
 
 /** The session finished but could not be stored; retrying and discarding are the only ways out. */

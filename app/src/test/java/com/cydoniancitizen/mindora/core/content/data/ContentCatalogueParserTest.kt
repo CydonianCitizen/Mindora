@@ -21,7 +21,7 @@ class ContentCatalogueParserTest {
 
     @Test
     fun `valid catalogue parses every step type and preserves array order`() {
-        val paths = ContentCatalogueParser.parse(validCatalogue)
+        val paths = ContentCatalogueParser.parse(validCatalogue).paths
 
         assertEquals(listOf("first-path", "second-path"), paths.map { it.id })
         assertEquals(
@@ -50,7 +50,7 @@ class ContentCatalogueParserTest {
     @Test
     fun `empty catalogue is valid`() {
         assertTrue(
-            ContentCatalogueParser.parse("""{"schemaVersion":1,"paths":[]}""").isEmpty(),
+            ContentCatalogueParser.parse("""{"schemaVersion":1,"paths":[]}""").paths.isEmpty(),
         )
     }
 

@@ -1,6 +1,6 @@
 package com.cydoniancitizen.mindora.core.content.data
 
-import com.cydoniancitizen.mindora.core.content.model.MindfulnessPath
+import com.cydoniancitizen.mindora.core.content.model.MindfulnessCatalogue
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -11,18 +11,12 @@ import kotlinx.serialization.json.intOrNull
 internal object ContentCatalogueParser {
     private const val SUPPORTED_SCHEMA_VERSION = 1
 
-    private val json = Json {
-        classDiscriminator = "type"
-        coerceInputValues = false
-        explicitNulls = true
-        ignoreUnknownKeys = false
-        isLenient = false
-        useAlternativeNames = false
-    }
-
-    fun parse(source: String): List<MindfulnessPath> {
+    fun parse(
+        source: String,
+        language: String = DEFAULT_CONTENT_LANGUAGE,
+    ): MindfulnessCatalogue {
         val root = try {
-            json.parseToJsonElement(source) as? JsonObject
+            Json.parseToJsonElement(source) as? JsonObject
                 ?: malformed("The catalogue root must be a JSON object.")
         } catch (error: SerializationException) {
             throw MalformedContentCatalogueException(error)
@@ -37,12 +31,12 @@ internal object ContentCatalogueParser {
         }
 
         val catalogue = try {
-            json.decodeFromJsonElement<ContentCatalogueDto>(root)
+            Json.decodeFromJsonElement<ContentCatalogueDto>(root)
         } catch (error: SerializationException) {
             throw MalformedContentCatalogueException(error)
         }
 
-        return ContentCatalogueValidator.validateAndMap(catalogue)
+        return ContentCatalogueValidator.validateAndMap(catalogue, language)
     }
 
     private fun malformed(reason: String): Nothing {

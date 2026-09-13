@@ -23,6 +23,18 @@ class MindfulnessSessionValidationTest {
     }
 
     @Test
+    fun `library meditation session without a source path passes validation`() {
+        // A library meditation stands on its own: it records the step id it ran, but no path.
+        validateForPersistence(
+            validSession.copy(
+                type = MindfulnessSessionType.FREE_MEDITATION,
+                sourcePathId = null,
+                sourceStepId = "meditation-calm",
+            ),
+        )
+    }
+
+    @Test
     fun `blank and padded session IDs are rejected`() {
         listOf("", " ", " session-id", "session-id ").forEach { id ->
             assertInvalid(validSession.copy(id = id))
@@ -54,11 +66,11 @@ class MindfulnessSessionValidationTest {
     }
 
     @Test
-    fun `source step without source path is rejected`() {
+    fun `source path without source step is rejected`() {
         assertInvalid(
             validSession.copy(
-                sourcePathId = null,
-                sourceStepId = "step-id",
+                sourcePathId = "path-id",
+                sourceStepId = null,
             ),
         )
     }

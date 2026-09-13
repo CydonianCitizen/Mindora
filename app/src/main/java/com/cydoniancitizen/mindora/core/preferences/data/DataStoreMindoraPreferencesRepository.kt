@@ -8,9 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.cydoniancitizen.mindora.core.preferences.MindoraPreferencesRepository
-import com.cydoniancitizen.mindora.core.preferences.model.DEFAULT_HAPTIC_INTENSITY
 import com.cydoniancitizen.mindora.core.preferences.model.MindoraPreferences
-import java.time.DateTimeException
 import java.time.LocalTime
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -26,15 +24,18 @@ class DataStoreMindoraPreferencesRepository @Inject constructor(
         dataStore.edit { values -> values.write(transform(read(values))) }
     }
 
-    private fun read(values: Preferences) = MindoraPreferences(
-        weeklyGoalMinutes = values[weeklyGoalMinutesKey],
-        dailyReminderEnabled = values[dailyReminderEnabledKey] ?: false,
-        dailyReminderTime = reminderTime(
-            hour = values[dailyReminderHourKey] ?: DEFAULT_REMINDER_HOUR,
-            minute = values[dailyReminderMinuteKey] ?: DEFAULT_REMINDER_MINUTE,
-        ),
-        hapticIntensity = values[hapticIntensityKey] ?: DEFAULT_HAPTIC_INTENSITY,
-    )
+    /** Anything never stored reads as the model's own default, so the defaults live in one place. */
+    private fun read(values: Preferences) = with(MindoraPreferences()) {
+        MindoraPreferences(
+            weeklyGoalMinutes = values[weeklyGoalMinutesKey] ?: weeklyGoalMinutes,
+            dailyReminderEnabled = values[dailyReminderEnabledKey] ?: dailyReminderEnabled,
+            dailyReminderTime = LocalTime.of(
+                values[dailyReminderHourKey] ?: dailyReminderTime.hour,
+                values[dailyReminderMinuteKey] ?: dailyReminderTime.minute,
+            ),
+            hapticIntensity = values[hapticIntensityKey] ?: hapticIntensity,
+        )
+    }
 
     private fun MutablePreferences.write(preferences: MindoraPreferences) {
         val goal = preferences.weeklyGoalMinutes
@@ -45,16 +46,7 @@ class DataStoreMindoraPreferencesRepository @Inject constructor(
         set(hapticIntensityKey, preferences.hapticIntensity)
     }
 
-    private fun reminderTime(hour: Int, minute: Int): LocalTime = try {
-        LocalTime.of(hour, minute)
-    } catch (error: DateTimeException) {
-        throw IllegalStateException("Stored reminder time is invalid.", error)
-    }
-
     private companion object {
-        const val DEFAULT_REMINDER_HOUR = 20
-        const val DEFAULT_REMINDER_MINUTE = 0
-
         val weeklyGoalMinutesKey = intPreferencesKey("weekly_goal_minutes")
         val dailyReminderEnabledKey = booleanPreferencesKey("daily_reminder_enabled")
         val dailyReminderHourKey = intPreferencesKey("daily_reminder_hour")
